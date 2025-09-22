@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EquiFlow — v1.2</title>
+  <title>EquiFlow — v1.2.1</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
     <span class="brand__dot"></span> EquiFlow
-    <small class="badge badge-soft">MVP v1.2</small>
+    <small class="badge badge-soft">MVP v1.2.1</small>
   </div>
   <div class="userbox">
     <label>Ja jako:
@@ -21,7 +21,7 @@
 </header>
 
 <!-- TABS -->
-<nav class="tabs">
+<nav id="tabsNav" class="tabs">
   <button class="tab tab-active" data-tab="volunteer">Wolontariusz</button>
   <button class="tab" data-tab="instructor">Instruktor</button>
   <button class="tab" data-tab="horses">Konie</button>
@@ -46,7 +46,6 @@
       </div>
     </section>
 
-    <!-- Filtry + widok -->
     <section class="controls">
       <div class="chips">
         <button id="v-chipAll" class="chip chip-active">Wszystkie <span id="v-countAll" class="count">0</span></button>
@@ -84,15 +83,14 @@
     <section class="actions">
       <button id="exportCsv" class="btn">Eksport CSV (moja aktywność)</button>
       <button id="resetData" class="btn ghost">Reset danych (demo)</button>
+      <button id="hardReset" class="btn ghost" title="Czyści localStorage i dosiewa">Twardy reset</button>
     </section>
   </section>
 
   <!-- === INSTRUCTOR TAB === -->
   <section id="tab-instructor" class="tabpane hidden">
     <section class="statusbar">
-      <div class="stat">
-        <span class="label">Panel instruktora</span>
-      </div>
+      <div class="stat"><span class="label">Panel instruktora</span></div>
       <div class="statusbar__right">
         <button id="i-createDefaults" class="btn small">Dodaj zadania domyślne</button>
       </div>
@@ -108,7 +106,7 @@
           <option value="wyprowadzanie">Wyprowadzanie (stado)</option>
           <option value="sprowadzanie">Sprowadzanie (stado)</option>
           <option value="rozsiodłanie">Rozsiodłanie (grupa)</option>
-          <option value="jazda">Jazda (konie ↔ jeźdźcy; tylko dla instruktorów)</option>
+          <option value="jazda">Jazda (koń ↔ jeździec, poziom, godzina)</option>
         </select>
         <select id="i-horse"></select>
         <select id="i-rider"></select>
@@ -139,9 +137,7 @@
   <!-- === HORSES TAB === -->
   <section id="tab-horses" class="tabpane hidden">
     <section class="statusbar">
-      <div class="stat">
-        <span class="label">Konie — obciążenie</span>
-      </div>
+      <div class="stat"><span class="label">Konie — obciążenie</span></div>
       <div class="statusbar__right">
         <div class="viewtog">
           <button id="h-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
@@ -155,7 +151,7 @@
 
 </main>
 
-<!-- MODAL (wspólny) -->
+<!-- MODAL -->
 <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal__card">
     <div class="modal__head">
@@ -171,7 +167,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <footer class="foot">
-  <small>© EquiFlow MVP v1.2 • localStorage • karty/listy • role: Wolontariusz / Instruktor / Konie</small>
+  <small>© EquiFlow MVP v1.2.1 • localStorage • karty/listy • role: Wolontariusz / Instruktor / Konie</small>
 </footer>
 
 <script src="app.js" defer></script>
