@@ -1,13 +1,12 @@
 :root{
-  /* nowocześniejsza paleta */
   --bg:#f9fafb; --panel:#ffffff; --ink:#1f2937; --muted:#6b7280;
   --accent:#DCC6A0; --accent-ink:#1f2937;
 
   /* statusy */
-  --open:#e8f1ff;        --open-b:#3b82f6;   /* niebieski (wolne) */
-  --taken:#fff5e6;       --taken-b:#f59e0b;  /* bursztyn (w trakcie) */
-  --review:#f3e8ff;      --review-b:#a855f7; /* fiolet (do weryf.) */
-  --approved:#e8fbef;    --approved-b:#10b981; /* zielony (ok) */
+  --open:#e8f1ff;        --open-b:#3b82f6;
+  --taken:#fff5e6;       --taken-b:#f59e0b;
+  --review:#f3e8ff;      --review-b:#a855f7;
+  --approved:#e8fbef;    --approved-b:#10b981;
 
   --radius:16px; --shadow:0 10px 30px rgba(2,6,23,.08);
   --max:1100px; --gap:14px;
@@ -26,22 +25,27 @@ button,input,select{font:inherit;color:inherit}
 .brand__dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
 .badge{padding:2px 8px;border-radius:999px;font-size:.78rem}
 .badge-soft{background:#f3f4f6;color:#374151;border:1px solid #e5e7eb}
-
 .userbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .userbox input{padding:9px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;width:190px}
 
-.wrap{max-width:var(--max);margin:18px auto;padding:0 16px}
+/* tabs */
+.tabs{display:flex;gap:8px;max-width:var(--max);margin:10px auto 0;padding:0 16px}
+.tab{padding:10px 14px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+.tab-active{background:var(--accent);color:var(--accent-ink)}
+.tabpane.hidden{display:none}
+
+.wrap{max-width:var(--max);margin:14px auto 18px;padding:0 16px}
 
 .statusbar{
   display:flex;justify-content:space-between;align-items:center;gap:10px;
   padding:12px;background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow)
 }
+.statusbar__right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .stat{display:flex;align-items:center;gap:10px}
 .points{font-weight:800}
 .podkowy{display:inline-flex;gap:4px;transform:translateY(1px)}
 .podkowy .hs{width:18px;height:18px;border-radius:50%;border:2px solid var(--accent);background:transparent}
 .podkowy .hs.fill{background:var(--accent)}
-
 .demo{color:var(--muted);font-size:.92rem}
 
 .controls{margin:16px 0;display:flex;flex-direction:column;gap:10px}
@@ -50,7 +54,10 @@ button,input,select{font:inherit;color:inherit}
   padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;flex:1
 }
 
-/* chips (liczniki i szybkie filtry) */
+.viewtog{display:flex;gap:6px}
+.viewbtn{border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer}
+.view-active{background:#eef2ff;border-color:#c7d2fe}
+
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{
   border:none;cursor:pointer;background:#eef2ff;color:#3730a3;
@@ -64,8 +71,12 @@ button,input,select{font:inherit;color:inherit}
 .chip-approved{background:var(--approved);color:var(--approved-b)}
 .chip-mine{background:#e5e7eb;color:#111827}
 
-/* lista */
+/* listy / karty */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--gap)}
+.list{display:block}
+.list .card{display:grid;grid-template-columns:1fr auto;align-items:center}
+.list .card .kit{grid-column:1 / -1}
+
 .card{
   background:var(--panel);border:1px solid #e5e7eb;border-radius:18px;box-shadow:var(--shadow);
   padding:14px;display:flex;flex-direction:column;gap:10px;transition:transform .08s ease, box-shadow .08s ease;
