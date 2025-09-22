@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EquiFlow — Katalog zadań (v1.1)</title>
+  <title>EquiFlow — v1.2</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
     <span class="brand__dot"></span> EquiFlow
-    <small class="badge badge-soft">MVP v1.1</small>
+    <small class="badge badge-soft">MVP v1.2</small>
   </div>
   <div class="userbox">
     <label>Ja jako:
@@ -20,62 +20,146 @@
   </div>
 </header>
 
+<!-- TABS -->
+<nav class="tabs">
+  <button class="tab tab-active" data-tab="volunteer">Wolontariusz</button>
+  <button class="tab" data-tab="instructor">Instruktor</button>
+  <button class="tab" data-tab="horses">Konie</button>
+</nav>
+
 <main class="wrap">
-  <section class="statusbar">
-    <div class="stat">
-      <span class="label">Moje punkty:</span>
-      <span id="myPoints" class="points">0</span>
-      <span class="podkowy" id="myHorseshoes" aria-hidden="true"></span>
-    </div>
-    <label class="demo">
-      <input id="demoAutoApprove" type="checkbox" />
-      Tryb demo: auto-akceptacja
-    </label>
+
+  <!-- === VOLUNTEER TAB === -->
+  <section id="tab-volunteer" class="tabpane">
+    <section class="statusbar">
+      <div class="stat">
+        <span class="label">Moje punkty:</span>
+        <span id="myPoints" class="points">0</span>
+        <span class="podkowy" id="myHorseshoes" aria-hidden="true"></span>
+      </div>
+      <div class="statusbar__right">
+        <button id="pointsHistory" class="btn small ghost">Historia punktów</button>
+        <label class="demo">
+          <input id="demoAutoApprove" type="checkbox" />
+          Tryb demo: auto-akceptacja
+        </label>
+      </div>
+    </section>
+
+    <!-- Filtry + widok -->
+    <section class="controls">
+      <div class="chips">
+        <button id="v-chipAll" class="chip chip-active">Wszystkie <span id="v-countAll" class="count">0</span></button>
+        <button id="v-chipOpen" class="chip chip-open">Wolne <span id="v-countOpen" class="count">0</span></button>
+        <button id="v-chipTaken" class="chip chip-taken">W trakcie <span id="v-countTaken" class="count">0</span></button>
+        <button id="v-chipReview" class="chip chip-review">Do weryf. <span id="v-countReview" class="count">0</span></button>
+        <button id="v-chipApproved" class="chip chip-approved">Zatwierdzone <span id="v-countApproved" class="count">0</span></button>
+        <button id="v-chipMine" class="chip chip-mine">Moje zadania</button>
+      </div>
+
+      <div class="controls__row">
+        <input id="v-search" type="search" placeholder="Szukaj (tytuł / koń / miejsce)" />
+        <select id="v-type" title="Typ zadania">
+          <option value="">Wszystkie typy</option>
+          <option value="porządki">Prace porządkowe</option>
+          <option value="siodłanie">Siodłanie / przygotowanie</option>
+          <option value="wyprowadzanie">Wyprowadzanie</option>
+          <option value="sprowadzanie">Sprowadzanie</option>
+          <option value="rozsiodłanie">Rozsiodłanie</option>
+          <option value="lonżowanie">Lonżowanie</option>
+          <option value="klinika">Klinika (komentarze)</option>
+          <option value="zabieg">Zabieg</option>
+          <option value="dziennikarz">Dziennikarz / Kronikarz</option>
+          <option value="luzak">Luzak (zadanie specjalne)</option>
+        </select>
+        <div class="viewtog">
+          <button id="v-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
+          <button id="v-view-list" class="viewbtn" title="Lista">≣</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="v-list" class="grid"></section>
+
+    <section class="actions">
+      <button id="exportCsv" class="btn">Eksport CSV (moja aktywność)</button>
+      <button id="resetData" class="btn ghost">Reset danych (demo)</button>
+    </section>
   </section>
 
-  <!-- FILTRY -->
-  <section class="controls">
-    <div class="chips">
-      <button id="chipAll" class="chip chip-active">Wszystkie <span id="countAll" class="count">0</span></button>
-      <button id="chipOpen" class="chip chip-open">Wolne <span id="countOpen" class="count">0</span></button>
-      <button id="chipTaken" class="chip chip-taken">W trakcie <span id="countTaken" class="count">0</span></button>
-      <button id="chipReview" class="chip chip-review">Do weryf. <span id="countReview" class="count">0</span></button>
-      <button id="chipApproved" class="chip chip-approved">Zatwierdzone <span id="countApproved" class="count">0</span></button>
-      <button id="chipMine" class="chip chip-mine">Moje zadania</button>
-    </div>
+  <!-- === INSTRUCTOR TAB === -->
+  <section id="tab-instructor" class="tabpane hidden">
+    <section class="statusbar">
+      <div class="stat">
+        <span class="label">Panel instruktora</span>
+      </div>
+      <div class="statusbar__right">
+        <button id="i-createDefaults" class="btn small">Dodaj zadania domyślne</button>
+      </div>
+    </section>
 
-    <div class="controls__row">
-      <input id="search" type="search" placeholder="Szukaj (tytuł / koń / miejsce)" />
-      <select id="typeFilter" title="Typ zadania">
-        <option value="">Wszystkie typy</option>
-        <option value="porządki">Prace porządkowe</option>
-        <option value="siodłanie">Siodłanie / przygotowanie</option>
-        <option value="wyprowadzanie">Wyprowadzanie</option>
-        <option value="sprowadzanie">Sprowadzanie</option>
-        <option value="rozsiodłanie">Rozsiodłanie</option>
-        <option value="lonżowanie">Lonżowanie</option>
-        <option value="klinika">Klinika (komentarze)</option>
-        <option value="zabieg">Zabieg</option>
-        <option value="dziennikarz">Dziennikarz / Kronikarz</option>
-        <option value="luzak">Luzak (zadanie specjalne)</option>
-      </select>
-    </div>
+    <section class="controls">
+      <div class="controls__row">
+        <select id="i-taskType">
+          <option value="lonżowanie">Lonżowanie (konkretne konie)</option>
+          <option value="zabieg">Zabieg (konkretny koń)</option>
+          <option value="porządki">Prace porządkowe (domyślne)</option>
+          <option value="dziennikarz">Dziennikarz/Kronikarz (domyślne)</option>
+          <option value="wyprowadzanie">Wyprowadzanie (stado)</option>
+          <option value="sprowadzanie">Sprowadzanie (stado)</option>
+          <option value="rozsiodłanie">Rozsiodłanie (grupa)</option>
+          <option value="jazda">Jazda (konie ↔ jeźdźcy; tylko dla instruktorów)</option>
+        </select>
+        <select id="i-horse"></select>
+        <select id="i-rider"></select>
+        <select id="i-skill">
+          <option value="">— poziom —</option>
+          <option value="kłus">kłus</option>
+          <option value="kłus/galop">kłus/galop</option>
+          <option value="teren">teren</option>
+        </select>
+        <input id="i-when" type="time" title="Godzina" />
+        <input id="i-title" type="text" placeholder="Tytuł / opis zadania" />
+        <input id="i-place" type="text" placeholder="Miejsce (arena/teren)" />
+        <input id="i-points" type="number" min="0" max="4" value="2" />
+        <button id="i-add" class="btn">Dodaj</button>
+      </div>
+
+      <div class="controls__row">
+        <div class="viewtog">
+          <button id="i-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
+          <button id="i-view-list" class="viewbtn" title="Lista">≣</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="i-list" class="grid"></section>
   </section>
 
-  <!-- LISTA -->
-  <section id="taskList" class="grid"></section>
+  <!-- === HORSES TAB === -->
+  <section id="tab-horses" class="tabpane hidden">
+    <section class="statusbar">
+      <div class="stat">
+        <span class="label">Konie — obciążenie</span>
+      </div>
+      <div class="statusbar__right">
+        <div class="viewtog">
+          <button id="h-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
+          <button id="h-view-list" class="viewbtn" title="Lista">≣</button>
+        </div>
+      </div>
+    </section>
 
-  <section class="actions">
-    <button id="exportCsv" class="btn">Eksport CSV (moja aktywność)</button>
-    <button id="resetData" class="btn ghost">Reset danych (demo)</button>
+    <section id="h-list" class="grid"></section>
   </section>
+
 </main>
 
-<!-- MODAL -->
+<!-- MODAL (wspólny) -->
 <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal__card">
     <div class="modal__head">
-      <h2 id="modalTitle">Szczegóły zadania</h2>
+      <h2 id="modalTitle">Szczegóły</h2>
       <button id="closeModal" class="iconbtn" aria-label="Zamknij">×</button>
     </div>
     <div id="modalBody" class="modal__body"></div>
@@ -87,7 +171,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <footer class="foot">
-  <small>© EquiFlow MVP — katalog zadań wolontariusza • stan zapisywany lokalnie (localStorage)</small>
+  <small>© EquiFlow MVP v1.2 • localStorage • karty/listy • role: Wolontariusz / Instruktor / Konie</small>
 </footer>
 
 <script src="app.js" defer></script>
