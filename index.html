@@ -3,14 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EquiFlow — Katalog zadań wolontariusza</title>
+  <title>EquiFlow — Katalog zadań (v1.1)</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">EquiFlow</div>
+  <div class="brand">
+    <span class="brand__dot"></span> EquiFlow
+    <small class="badge badge-soft">MVP v1.1</small>
+  </div>
   <div class="userbox">
-    <label>Ja jako: 
+    <label>Ja jako:
       <input id="volunteerName" type="text" placeholder="Twoje imię" />
     </label>
     <button id="saveUser" class="btn small">Zapisz</button>
@@ -26,31 +29,40 @@
     </div>
     <label class="demo">
       <input id="demoAutoApprove" type="checkbox" />
-      Tryb demo: auto-akceptacja (przyznaje domyślne podkowy)
+      Tryb demo: auto-akceptacja
     </label>
   </section>
 
+  <!-- FILTRY -->
   <section class="controls">
-    <input id="search" type="search" placeholder="Szukaj zadania…" />
-    <select id="typeFilter">
-      <option value="">Wszystkie typy</option>
-      <option value="porządki">Prace porządkowe</option>
-      <option value="siodłanie">Siodłanie / przygotowanie</option>
-      <option value="wyprowadzanie">Wyprowadzanie</option>
-      <option value="sprowadzanie">Sprowadzanie</option>
-      <option value="rozsiodłanie">Rozsiodłanie</option>
-      <option value="lonżowanie">Lonżowanie</option>
-      <option value="klinika">Klinika (komentarze)</option>
-      <option value="zabieg">Zabieg (masaże, derki, kopyta)</option>
-      <option value="dziennikarz">Dziennikarz / Kronikarz</option>
-      <option value="luzak">Luzak (zadanie specjalne)</option>
-    </select>
-    <label class="check">
-      <input id="onlyOpen" type="checkbox" checked />
-      Pokaż tylko wolne
-    </label>
+    <div class="chips">
+      <button id="chipAll" class="chip chip-active">Wszystkie <span id="countAll" class="count">0</span></button>
+      <button id="chipOpen" class="chip chip-open">Wolne <span id="countOpen" class="count">0</span></button>
+      <button id="chipTaken" class="chip chip-taken">W trakcie <span id="countTaken" class="count">0</span></button>
+      <button id="chipReview" class="chip chip-review">Do weryf. <span id="countReview" class="count">0</span></button>
+      <button id="chipApproved" class="chip chip-approved">Zatwierdzone <span id="countApproved" class="count">0</span></button>
+      <button id="chipMine" class="chip chip-mine">Moje zadania</button>
+    </div>
+
+    <div class="controls__row">
+      <input id="search" type="search" placeholder="Szukaj (tytuł / koń / miejsce)" />
+      <select id="typeFilter" title="Typ zadania">
+        <option value="">Wszystkie typy</option>
+        <option value="porządki">Prace porządkowe</option>
+        <option value="siodłanie">Siodłanie / przygotowanie</option>
+        <option value="wyprowadzanie">Wyprowadzanie</option>
+        <option value="sprowadzanie">Sprowadzanie</option>
+        <option value="rozsiodłanie">Rozsiodłanie</option>
+        <option value="lonżowanie">Lonżowanie</option>
+        <option value="klinika">Klinika (komentarze)</option>
+        <option value="zabieg">Zabieg</option>
+        <option value="dziennikarz">Dziennikarz / Kronikarz</option>
+        <option value="luzak">Luzak (zadanie specjalne)</option>
+      </select>
+    </div>
   </section>
 
+  <!-- LISTA -->
   <section id="taskList" class="grid"></section>
 
   <section class="actions">
@@ -59,7 +71,7 @@
   </section>
 </main>
 
-<!-- Modal szczegółów -->
+<!-- MODAL -->
 <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal__card">
     <div class="modal__head">
@@ -71,6 +83,9 @@
   </div>
 </div>
 
+<!-- TOAST -->
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
 <footer class="foot">
   <small>© EquiFlow MVP — katalog zadań wolontariusza • stan zapisywany lokalnie (localStorage)</small>
 </footer>
@@ -78,4 +93,3 @@
 <script src="app.js" defer></script>
 </body>
 </html>
-
