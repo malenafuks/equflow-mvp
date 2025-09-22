@@ -1,1 +1,81 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EquiFlow — Katalog zadań wolontariusza</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">EquiFlow</div>
+  <div class="userbox">
+    <label>Ja jako: 
+      <input id="volunteerName" type="text" placeholder="Twoje imię" />
+    </label>
+    <button id="saveUser" class="btn small">Zapisz</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="statusbar">
+    <div class="stat">
+      <span class="label">Moje punkty:</span>
+      <span id="myPoints" class="points">0</span>
+      <span class="podkowy" id="myHorseshoes" aria-hidden="true"></span>
+    </div>
+    <label class="demo">
+      <input id="demoAutoApprove" type="checkbox" />
+      Tryb demo: auto-akceptacja (przyznaje domyślne podkowy)
+    </label>
+  </section>
+
+  <section class="controls">
+    <input id="search" type="search" placeholder="Szukaj zadania…" />
+    <select id="typeFilter">
+      <option value="">Wszystkie typy</option>
+      <option value="porządki">Prace porządkowe</option>
+      <option value="siodłanie">Siodłanie / przygotowanie</option>
+      <option value="wyprowadzanie">Wyprowadzanie</option>
+      <option value="sprowadzanie">Sprowadzanie</option>
+      <option value="rozsiodłanie">Rozsiodłanie</option>
+      <option value="lonżowanie">Lonżowanie</option>
+      <option value="klinika">Klinika (komentarze)</option>
+      <option value="zabieg">Zabieg (masaże, derki, kopyta)</option>
+      <option value="dziennikarz">Dziennikarz / Kronikarz</option>
+      <option value="luzak">Luzak (zadanie specjalne)</option>
+    </select>
+    <label class="check">
+      <input id="onlyOpen" type="checkbox" checked />
+      Pokaż tylko wolne
+    </label>
+  </section>
+
+  <section id="taskList" class="grid"></section>
+
+  <section class="actions">
+    <button id="exportCsv" class="btn">Eksport CSV (moja aktywność)</button>
+    <button id="resetData" class="btn ghost">Reset danych (demo)</button>
+  </section>
+</main>
+
+<!-- Modal szczegółów -->
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal__card">
+    <div class="modal__head">
+      <h2 id="modalTitle">Szczegóły zadania</h2>
+      <button id="closeModal" class="iconbtn" aria-label="Zamknij">×</button>
+    </div>
+    <div id="modalBody" class="modal__body"></div>
+    <div class="modal__foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<footer class="foot">
+  <small>© EquiFlow MVP — katalog zadań wolontariusza • stan zapisywany lokalnie (localStorage)</small>
+</footer>
+
+<script src="app.js" defer></script>
+</body>
+</html>
 
