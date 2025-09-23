@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EquiFlow — v1.2.1</title>
+  <title>EquiFlow — v1.3</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
     <span class="brand__dot"></span> EquiFlow
-    <small class="badge badge-soft">MVP v1.2.1</small>
+    <small class="badge badge-soft">MVP v1.3</small>
   </div>
   <div class="userbox">
     <label>Ja jako:
@@ -20,17 +20,72 @@
   </div>
 </header>
 
-<!-- TABS -->
+<!-- TABS: Instruktor / Wolontariusz / Raporty -->
 <nav id="tabsNav" class="tabs">
-  <button class="tab tab-active" data-tab="volunteer">Wolontariusz</button>
-  <button class="tab" data-tab="instructor">Instruktor</button>
-  <button class="tab" data-tab="horses">Konie</button>
+  <button class="tab tab-instructor tab-active" data-tab="instructor">Instruktor</button>
+  <button class="tab tab-volunteer" data-tab="volunteer">Wolontariusz</button>
+  <button class="tab tab-reports" data-tab="reports">Raporty</button>
 </nav>
 
 <main class="wrap">
 
+  <!-- === INSTRUCTOR TAB === -->
+  <section id="tab-instructor" class="tabpane">
+    <section class="statusbar">
+      <div class="stat"><span class="label">Panel instruktora</span></div>
+      <div class="statusbar__right">
+        <button id="i-createDefaults" class="btn small">Dodaj zadania domyślne</button>
+      </div>
+    </section>
+
+    <!-- DYNAMICZNY FORMULARZ DODAWANIA ZADAŃ -->
+    <section class="controls">
+      <div class="controls__row stack">
+        <label>Rodzaj zadania
+          <select id="i-taskType">
+            <option value="prep">Przygotowanie do Jazdy</option>
+            <option value="zabieg">Zabieg</option>
+            <option value="wyprowadzenie">Wyprowadzenie Stada</option>
+            <option value="sprowadzenie">Sprowadzenie Stada</option>
+            <option value="rozsiodłanie">Rozsiodłanie</option>
+            <option value="jazda_grupowa">Jazda Grupowa</option>
+            <option value="jazda_indywidualna">Jazda Indywidualna</option>
+          </select>
+        </label>
+
+        <!-- dynamiczne pola -->
+        <div id="i-dynamicFields" class="grid2"></div>
+
+        <div class="row-inline">
+          <label>Punkty
+            <input id="i-points" type="number" min="0" max="4" value="2" />
+          </label>
+          <label>Arena
+            <input id="i-place" type="text" placeholder="np. hala / arena 1" />
+          </label>
+        </div>
+
+        <label>Tytuł / opis (opcjonalnie)
+          <input id="i-title" type="text" placeholder="np. Przygotowanie — Prada dla Oli" />
+        </label>
+
+        <button id="i-add" class="btn">Dodaj zadanie</button>
+      </div>
+
+      <div class="controls__row">
+        <div class="viewtog">
+          <button id="i-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
+          <button id="i-view-list" class="viewbtn" title="Lista">≣</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LISTA ZADAŃ (START: tylko domyślne/codzienne) -->
+    <section id="i-list" class="grid"></section>
+  </section>
+
   <!-- === VOLUNTEER TAB === -->
-  <section id="tab-volunteer" class="tabpane">
+  <section id="tab-volunteer" class="tabpane hidden">
     <section class="statusbar">
       <div class="stat">
         <span class="label">Moje punkty:</span>
@@ -61,15 +116,15 @@
         <select id="v-type" title="Typ zadania">
           <option value="">Wszystkie typy</option>
           <option value="porządki">Prace porządkowe</option>
-          <option value="siodłanie">Siodłanie / przygotowanie</option>
-          <option value="wyprowadzanie">Wyprowadzanie</option>
-          <option value="sprowadzanie">Sprowadzanie</option>
+          <option value="siodłanie">Przygotowanie do Jazdy</option>
+          <option value="wyprowadzanie">Wyprowadzenie Stada</option>
+          <option value="sprowadzanie">Sprowadzenie Stada</option>
           <option value="rozsiodłanie">Rozsiodłanie</option>
           <option value="lonżowanie">Lonżowanie</option>
-          <option value="klinika">Klinika (komentarze)</option>
+          <option value="klinika">Klinika</option>
           <option value="zabieg">Zabieg</option>
           <option value="dziennikarz">Dziennikarz / Kronikarz</option>
-          <option value="luzak">Luzak (zadanie specjalne)</option>
+          <option value="luzak">Luzak</option>
         </select>
         <div class="viewtog">
           <button id="v-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
@@ -83,70 +138,49 @@
     <section class="actions">
       <button id="exportCsv" class="btn">Eksport CSV (moja aktywność)</button>
       <button id="resetData" class="btn ghost">Reset danych (demo)</button>
-      <button id="hardReset" class="btn ghost" title="Czyści localStorage i dosiewa">Twardy reset</button>
+      <button id="hardReset" class="btn ghost">Twardy reset</button>
     </section>
   </section>
 
-  <!-- === INSTRUCTOR TAB === -->
-  <section id="tab-instructor" class="tabpane hidden">
+  <!-- === REPORTS TAB === -->
+  <section id="tab-reports" class="tabpane hidden">
     <section class="statusbar">
-      <div class="stat"><span class="label">Panel instruktora</span></div>
+      <div class="stat"><span class="label">Raporty — podsumowanie</span></div>
       <div class="statusbar__right">
-        <button id="i-createDefaults" class="btn small">Dodaj zadania domyślne</button>
+        <button id="r-export" class="btn small">Eksport CSV</button>
       </div>
     </section>
 
     <section class="controls">
       <div class="controls__row">
-        <select id="i-taskType">
-          <option value="lonżowanie">Lonżowanie (konkretne konie)</option>
-          <option value="zabieg">Zabieg (konkretny koń)</option>
-          <option value="porządki">Prace porządkowe (domyślne)</option>
-          <option value="dziennikarz">Dziennikarz/Kronikarz (domyślne)</option>
-          <option value="wyprowadzanie">Wyprowadzanie (stado)</option>
-          <option value="sprowadzanie">Sprowadzanie (stado)</option>
-          <option value="rozsiodłanie">Rozsiodłanie (grupa)</option>
-          <option value="jazda">Jazda (koń ↔ jeździec, poziom, godzina)</option>
+        <label>Od
+          <input id="r-from" type="date" />
+        </label>
+        <label>Do
+          <input id="r-to" type="date" />
+        </label>
+        <select id="r-group">
+          <option value="none">Bez grupowania</option>
+          <option value="user">Po wolontariuszu</option>
+          <option value="type">Po typie zadania</option>
+          <option value="horse">Po koniu</option>
         </select>
-        <select id="i-horse"></select>
-        <select id="i-rider"></select>
-        <select id="i-skill">
-          <option value="">— poziom —</option>
-          <option value="kłus">kłus</option>
-          <option value="kłus/galop">kłus/galop</option>
-          <option value="teren">teren</option>
+        <select id="r-status">
+          <option value="">Status: wszystkie</option>
+          <option value="open">Wolne</option>
+          <option value="taken">W trakcie</option>
+          <option value="to_review">Do weryfikacji</option>
+          <option value="approved">Zatwierdzone</option>
+          <option value="rejected">Odrzucone</option>
         </select>
-        <input id="i-when" type="time" title="Godzina" />
-        <input id="i-title" type="text" placeholder="Tytuł / opis zadania" />
-        <input id="i-place" type="text" placeholder="Miejsce (arena/teren)" />
-        <input id="i-points" type="number" min="0" max="4" value="2" />
-        <button id="i-add" class="btn">Dodaj</button>
-      </div>
-
-      <div class="controls__row">
         <div class="viewtog">
-          <button id="i-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
-          <button id="i-view-list" class="viewbtn" title="Lista">≣</button>
+          <button id="r-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
+          <button id="r-view-list" class="viewbtn" title="Lista">≣</button>
         </div>
       </div>
     </section>
 
-    <section id="i-list" class="grid"></section>
-  </section>
-
-  <!-- === HORSES TAB === -->
-  <section id="tab-horses" class="tabpane hidden">
-    <section class="statusbar">
-      <div class="stat"><span class="label">Konie — obciążenie</span></div>
-      <div class="statusbar__right">
-        <div class="viewtog">
-          <button id="h-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
-          <button id="h-view-list" class="viewbtn" title="Lista">≣</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="h-list" class="grid"></section>
+    <section id="r-list" class="grid"></section>
   </section>
 
 </main>
@@ -167,7 +201,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <footer class="foot">
-  <small>© EquiFlow MVP v1.2.1 • localStorage • karty/listy • role: Wolontariusz / Instruktor / Konie</small>
+  <small>© EquiFlow MVP v1.3 • Instruktor / Wolontariusz / Raporty</small>
 </footer>
 
 <script src="app.js" defer></script>
