@@ -1,4 +1,4 @@
-/* EquiFlow v1.3 */
+/* EquiFlow v1.3.1 — rides fix + in-app confirm */
 
 const LS = {
   TASKS: "equiflow_tasks_v1",
@@ -12,12 +12,12 @@ const LS = {
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
-/* --- Sample data --- */
+/* Sample data */
 const sampleHorses = ["Itaka", "Basia", "Nicpoń", "Jurek", "Prada", "Emocja"];
 const sampleRiders = ["Ola", "Michał", "Anka", "Kuba", "Julia", "Tomek", "Nina", "Bartek"];
 const zabiegiList = ["Masaż", "Derka magnetyczna", "Kopyta — pielęgnacja", "Kąpiel", "Stretching"];
 
-/* --- Utils --- */
+/* Utils */
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
 function save(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
 function load(k){ try{ return JSON.parse(localStorage.getItem(k)||""); }catch{ return null; } }
@@ -25,37 +25,57 @@ function escapeHTML(s){ return String(s??"").replace(/[&<>"']/g, m=>({ "&":"&amp
 function csvEscape(val){ const s=String(val??""); return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }
 function download(name, data, mime="text/plain"){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([data],{type:mime})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
 function todayISO(){ const d=new Date(); const z=(n)=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
-function isoToPL(iso){ const [y,m,d]=iso.split("-"); return `${d}.${m}.${y}`; }
-function plToISO(pl){ const [d,m,y]=pl.split("."); return `${y}-${m}-${d}`; }
+function isoToPL(iso){ if(!iso) return "—"; const [y,m,d]=iso.split("-"); return `${d}.${m}.${y}`; }
 function isFutureISO(iso){ return new Date(iso) > new Date(todayISO()); }
-
+function clamp(n,min=0,max=4){ return Math.max(min, Math.min(max, n)); }
 function toastMsg(msg){ const el=$("#toast"); el.textContent=msg; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"), 1800); }
 
-/* --- Model --- */
+/* In-app confirm modal */
+function confirmInApp(message, {ok="Tak", cancel="Nie", title="Potwierdź"}={}){
+  return new Promise(resolve=>{
+    const modal = $("#confirm");
+    $("#confirmTitle").textContent = title;
+    $("#confirmBody").innerHTML = `<p>${escapeHTML(message)}</p>`;
+    const okBtn = $("#confirmOk"), cancelBtn=$("#confirmCancel");
+    okBtn.textContent = ok; cancelBtn.textContent = cancel;
+    function cleanup(res){
+      modal.classList.add("hidden");
+      okBtn.removeEventListener("click", okH);
+      cancelBtn.removeEventListener("click", cancelH);
+      resolve(res);
+    }
+    function okH(){ cleanup(true); }
+    function cancelH(){ cleanup(false); }
+    okBtn.addEventListener("click", okH);
+    cancelBtn.addEventListener("click", cancelH);
+    modal.classList.remove("hidden");
+  });
+}
+
+/* Model */
 function task(title, type, extra={}){
   return {
     id: uid(),
-    title, type, // type: porządki/siodłanie/wyprowadzenie/sprowadzenie/rozsiodłanie/lonżowanie/klinika/zabieg/dziennikarz/luzak/jazda_grupowa/jazda_indywidualna/prep
+    title, type,
     arena: extra.arena || null,
     horse: extra.horse || null,
     rider: extra.rider || null,
-    groupLevel: extra.groupLevel || null,  // dla jazda_grupowa
-    indivLevel: extra.indivLevel || null,  // dla jazda_indywidualna
-    when: extra.when || null,              // "HH:MM"
-    dateISO: extra.dateISO || todayISO(),  // "YYYY-MM-DD"
+    groupLevel: extra.groupLevel || null,
+    indivLevel: extra.indivLevel || null,
+    when: extra.when || null,             // "HH:MM"
+    dateISO: extra.dateISO || todayISO(), // "YYYY-MM-DD"
     points: typeof extra.points==="number" ? extra.points : 2,
     status: extra.status || "open",
     assignedTo: extra.assignedTo || null,
     comments: extra.comments || "",
-    procType: extra.procType || null,      // typ zabiegu
+    procType: extra.procType || null,
     media: extra.media || [],
-    daily: !!extra.daily,                  // czy domyślne codzienne
-    nudged: false,                         // „szturchnięte”
+    daily: !!extra.daily,
+    nudged: false,
     ts: Date.now()
   };
 }
 
-/* seed */
 const seedTasks = [
   task("Prace porządkowe — stajnia", "porządki", {points:2, daily:true}),
   task("Wyprowadzenie Stada", "wyprowadzenie", {points:1, daily:true}),
@@ -63,7 +83,6 @@ const seedTasks = [
   task("Dziennikarz/Kronikarz — dokumentuj dzień", "dziennikarz", {points:2}),
 ];
 
-/* --- State --- */
 let state;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -81,12 +100,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Elements
-  const tabsNav = $("#tabsNav");
-  tabsNav.addEventListener("click",(e)=>{
+  // Tabs
+  $("#tabsNav").addEventListener("click",(e)=>{
     const btn = e.target.closest(".tab"); if(!btn) return;
-    switchTab(btn.dataset.tab);
-    renderAll();
+    switchTab(btn.dataset.tab); renderAll();
   });
 
   // profile
@@ -98,24 +115,16 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAll();
   });
 
-  // DEMO
+  // demo
   const demoChk = $("#demoAutoApprove");
   demoChk.checked = !!state.settings.demoAutoApprove;
-  demoChk.addEventListener("change", ()=>{
-    state.settings.demoAutoApprove = demoChk.checked;
-    save(LS.SETTINGS, state.settings);
-  });
+  demoChk.addEventListener("change", ()=>{ state.settings.demoAutoApprove = demoChk.checked; save(LS.SETTINGS, state.settings); });
 
   /* INSTRUKTOR */
-  // widok
   $("#i-view-cards").addEventListener("click", ()=>{ state.ui.i.view="cards"; setViewActive("i","cards"); renderInstructor(); });
   $("#i-view-list").addEventListener("click", ()=>{ state.ui.i.view="list"; setViewActive("i","list"); renderInstructor(); });
-
-  // dynamiczne pola formularza
   $("#i-taskType").addEventListener("change", renderDynamicFields);
   renderDynamicFields();
-
-  // akcje formularza
   $("#i-add").addEventListener("click", addInstructorTask);
   $("#i-createDefaults").addEventListener("click", ()=>{
     state.tasks = seedTasks.map(t=>({...t, id:uid(), ts:Date.now(), dateISO:todayISO()})).concat(state.tasks);
@@ -123,7 +132,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* WOLONTARIUSZ */
-  // filtry
   $("#v-chipAll").addEventListener("click", ()=>{ state.ui.v.status="all"; setChipActive("v","all"); renderVolunteer(); });
   $("#v-chipOpen").addEventListener("click", ()=>{ state.ui.v.status="open"; setChipActive("v","open"); renderVolunteer(); });
   $("#v-chipTaken").addEventListener("click", ()=>{ state.ui.v.status="taken"; setChipActive("v","taken"); renderVolunteer(); });
@@ -134,7 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#v-type").addEventListener("change", ()=>{ state.ui.v.type = $("#v-type").value; renderVolunteer(); });
   $("#v-view-cards").addEventListener("click", ()=>{ state.ui.v.view="cards"; setViewActive("v","cards"); renderVolunteer(); });
   $("#v-view-list").addEventListener("click", ()=>{ state.ui.v.view="list"; setViewActive("v","list"); renderVolunteer(); });
-
   $("#pointsHistory").addEventListener("click", openPointsHistory);
   $("#exportCsv").addEventListener("click", exportCSV);
   $("#resetData").addEventListener("click", ()=>{ if(confirm("Zresetować do domyślnych?")){ state.tasks = seedNow(); persistTasks(); renderAll(); }});
@@ -146,7 +153,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* RAPORTY */
-  // daty
   $("#r-from").value = state.ui.r.from || todayISO();
   $("#r-to").value = state.ui.r.to || todayISO();
   $("#r-group").value = state.ui.r.group;
@@ -164,60 +170,36 @@ document.addEventListener("DOMContentLoaded", () => {
   renderAll();
 });
 
-/* ---------- DYNAMIC FIELDS for instructor ---------- */
+/* Dynamic fields for instructor */
 function renderDynamicFields(){
   const c = $("#i-dynamicFields"); c.innerHTML = "";
   const type = $("#i-taskType").value;
 
-  const date = inputDate("Data", "i-date", todayISO()); // date input (ISO)
-  const time = inputTime("Godzina", "i-when");          // HH:MM
+  const date = inputDate("Data", "i-date", todayISO());
+  const time = inputTime("Godzina", "i-when");
   const horse = inputSelect("Koń", "i-horse", ["— koń —"].concat(load(LS.HORSES)||sampleHorses));
   const rider = inputSelect("Jeździec", "i-rider", ["— jeździec —"].concat(load(LS.RIDERS)||sampleRiders));
   const levelGroup = inputSelect("Poziom (grupa)", "i-level-group", ["kłus", "kłus-galop", "obóz", "teren"]);
   const levelIndiv = inputSelect("Poziom (indywidualna)", "i-level-indiv", ["lonża", "kłus", "kłus-galop"]);
   const zabieg = inputSelect("Typ zabiegu", "i-proc", zabiegiList);
 
-  // wg typu
-  if (type==="prep"){
-    append(c, date, time, horse, rider);
-  } else if (type==="zabieg"){
-    append(c, date, horse, zabieg);
-  } else if (type==="wyprowadzenie" || type==="sprowadzenie" || type==="rozsiodłanie"){
-    append(c, date, time);
-  } else if (type==="jazda_grupowa"){
-    append(c, date, time, levelGroup, horse, rider);
-  } else if (type==="jazda_indywidualna"){
-    append(c, date, time, levelIndiv, horse, rider);
-  }
+  if (type==="prep"){ append(c, date, time, horse, rider); }
+  else if (type==="zabieg"){ append(c, date, horse, zabieg); }
+  else if (type==="wyprowadzenie" || type==="sprowadzenie" || type==="rozsiodłanie"){ append(c, date, time); }
+  else if (type==="jazda_grupowa"){ append(c, date, time, levelGroup, horse, rider); }
+  else if (type==="jazda_indywidualna"){ append(c, date, time, levelIndiv, horse, rider); }
 }
-function inputDate(label, id, iso){
-  const el = document.createElement("label");
-  el.innerHTML = `${label}<input id="${id}" type="date" value="${iso}"/>`;
-  return el;
-}
-function inputTime(label, id){
-  const el = document.createElement("label");
-  el.innerHTML = `${label}<input id="${id}" type="time" />`;
-  return el;
-}
-function inputSelect(label,id,arr){
-  const el = document.createElement("label");
-  el.innerHTML = `${label}
-    <select id="${id}">
-      ${arr.map(v=>`<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join("")}
-    </select>`;
-  return el;
-}
-function append(parent, ...children){ children.forEach(ch=>parent.appendChild(ch)); }
+function inputDate(label, id, iso){ const el=document.createElement("label"); el.innerHTML=`${label}<input id="${id}" type="date" value="${iso}"/>`; return el; }
+function inputTime(label, id){ const el=document.createElement("label"); el.innerHTML=`${label}<input id="${id}" type="time" />`; return el; }
+function inputSelect(label,id,arr){ const el=document.createElement("label"); el.innerHTML=`${label}<select id="${id}">${arr.map(v=>`<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join("")}</select>`; return el; }
+function append(parent,...children){ children.forEach(ch=>parent.appendChild(ch)); }
 
-/* ---------- Renders ---------- */
+/* Renders */
 function renderAll(){ renderInstructor(); renderVolunteer(); renderReports(); save(LS.UI, state.ui); }
-
 function setViewActive(prefix, which){
   const map = { i:{cards:"#i-view-cards",list:"#i-view-list"}, v:{cards:"#v-view-cards",list:"#v-view-list"}, r:{cards:"#r-view-cards",list:"#r-view-list"} };
   const m = map[prefix]; $(m.cards).classList.toggle("view-active", which==="cards"); $(m.list).classList.toggle("view-active", which==="list");
 }
-
 function switchTab(key){
   state.ui.tab = key;
   $$(".tab").forEach(b=>b.classList.toggle("tab-active", b.dataset.tab===key));
@@ -227,16 +209,14 @@ function switchTab(key){
   save(LS.UI, state.ui);
 }
 
-/* ---- Instructor ---- */
+/* Instructor list */
 function renderInstructor(){
-  // startowy widok: tylko codzienne domyślne
-  const items = state.tasks.filter(t => t.daily || t.type==="porządki" || t.type==="wyprowadzenie" || t.type==="sprowadzenie");
+  const items = state.tasks.filter(t => t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type));
   const other = state.tasks.filter(t => !(t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type)));
   const list = $("#i-list");
   list.className = state.ui.i.view==="list" ? "list" : "grid";
   list.innerHTML = items.concat(other).map(cardHTMLInstructor).join("");
 
-  // bind
   list.querySelectorAll(".openModal").forEach(b=>b.addEventListener("click", e=>{
     const id = e.currentTarget.dataset.id; const t = state.tasks.find(x=>x.id===id); if(t) openTaskModal(t);
   }));
@@ -246,7 +226,6 @@ function renderInstructor(){
   list.querySelectorAll(".nudge").forEach(b=>b.addEventListener("click", onNudge));
   list.querySelectorAll(".delete").forEach(b=>b.addEventListener("click", onDeleteTask));
 }
-
 function cardHTMLInstructor(t){
   const meta = [
     isoToPL(t.dateISO),
@@ -291,9 +270,8 @@ function cardHTMLInstructor(t){
     </div>
   </article>`;
 }
-
 function assignVolunteerUI(id){
-  const vols = uniqueAssignedCandidates(); // z historii + pole do wpisania
+  const vols = uniqueAssignedCandidates();
   return `
     <span class="meta">Przypisz do:</span>
     <select class="assignSel" data-id="${id}">
@@ -305,11 +283,9 @@ function assignVolunteerUI(id){
 }
 function uniqueAssignedCandidates(){
   const arr = state.tasks.map(t=>t.assignedTo).filter(Boolean);
-  const me = (state.volunteer.name||"").trim();
-  if(me) arr.push(me);
+  const me = (state.volunteer.name||"").trim(); if(me) arr.push(me);
   return Array.from(new Set(arr));
 }
-
 function onAssignVolunteer(e){
   const id = e.currentTarget.dataset.id;
   const card = e.currentTarget.closest(".card");
@@ -331,19 +307,16 @@ function onDeleteTask(e){
   persistTasks(); renderAll();
 }
 
-/* ---- Volunteer ---- */
+/* Volunteer */
 function renderVolunteer(){
   const me = (state.volunteer.name||"").trim();
-  // wolontariusz NIE widzi jazd
   const vis = state.tasks.filter(t=> t.type!=="jazda_grupowa" && t.type!=="jazda_indywidualna");
-  // liczniki
   setCounts("v", vis);
-  // punkty
+
   const approvedMine = state.tasks.filter(t=> t.assignedTo===me && t.status==="approved");
   $("#myPoints").textContent = String(approvedMine.reduce((a,t)=>a+(+t.points||0),0));
-  $("#myHorseshoes").innerHTML = horseshoesHTML(4); // wizualka max 4
+  $("#myHorseshoes").innerHTML = horseshoesHTML(4);
 
-  // filtracja
   const items = vis.filter(t=>{
     const statusOk = state.ui.v.status==="all" ? true : t.status===state.ui.v.status;
     const mineOk = state.ui.v.onlyMine ? (t.assignedTo===me) : true;
@@ -360,10 +333,7 @@ function renderVolunteer(){
   list.querySelectorAll(".take").forEach(b=>b.addEventListener("click", onQuickTake));
   list.querySelectorAll(".done").forEach(b=>b.addEventListener("click", onQuickDone));
 }
-function typeMapVolunteer(t){
-  // mapujemy „prep” na „siodłanie” w filtrze wolontariusza
-  return t==="prep" ? "siodłanie" : t;
-}
+function typeMapVolunteer(t){ return t==="prep" ? "siodłanie" : t; }
 function cardHTMLVolunteer(t){
   const meta = [
     isoToPL(t.dateISO),
@@ -377,14 +347,12 @@ function cardHTMLVolunteer(t){
   <article class="card ${classByStatus(t.status)} ${t.daily?'daily':''} ${isFutureISO(t.dateISO)?'future':''}" data-id="${t.id}">
     <div class="title">
       <h3>${escapeHTML(t.title)}</h3>
-      <span class="podkowy" title="${t.points} podk.">${horseshoesHTML(t.points)}</span>
     </div>
     <div class="badges">
       <span class="badge-tag ${t.daily?'badge-daily':''}">${escapeHTML(typeLabel(t.type))}</span>
       ${statusBadgeHTML(t.status)}
     </div>
     <div class="meta">${escapeHTML(meta)}</div>
-    ${t.comments ? `<div class="meta">Uwagi: ${escapeHTML(t.comments)}</div>` : ""}
     <div class="kit">
       <button class="btn more">Szczegóły</button>
       ${quickButtonsVolunteer(t)}
@@ -397,9 +365,9 @@ function quickButtonsVolunteer(t){
   if (t.assignedTo === me && t.status === "taken") return `<button class="btn done" data-id="${t.id}">Zgłoś Wykonanie</button>`;
   return `<span class="meta"></span>`;
 }
+function onOpenTask(e){ const id=e.currentTarget.closest(".card")?.dataset.id; const t=state.tasks.find(x=>x.id===id); if(t) openTaskModal(t); }
 function onQuickTake(e){ const id=e.currentTarget.dataset.id; const t=state.tasks.find(x=>x.id===id); if(t) takeTask(t); }
 function onQuickDone(e){ const id=e.currentTarget.dataset.id; const t=state.tasks.find(x=>x.id===id); if(t) markDone(t); }
-
 function takeTask(t){
   const me = (state.volunteer.name||"").trim();
   if(!me){ alert("Podaj swoje imię i zapisz."); return; }
@@ -415,7 +383,7 @@ function markDone(t){
   renderAll();
 }
 
-/* ---- Reports ---- */
+/* Reports */
 function renderReports(){
   const view = state.ui.r.view;
   const from = new Date(state.ui.r.from || todayISO());
@@ -456,8 +424,9 @@ function cardHTMLReport(t){
     t.rider ? `jeździec: ${t.rider}` : null,
     t.assignedTo ? `wolont.: ${t.assignedTo}` : null
   ].filter(Boolean).join(" • ");
+  const ride = (t.type==="jazda_grupowa" || t.type==="jazda_indywidualna");
   return `
-  <article class="card ${classByStatus(t.status)} ${isFutureISO(t.dateISO)?'future':''}">
+  <article class="card ${classByStatus(t.status)} ${isFutureISO(t.dateISO)?'future':''} ${ride?'ride':''}">
     <div class="title"><h3>${escapeHTML(t.title)}</h3></div>
     <div class="badges"><span class="badge-tag">${escapeHTML(typeLabel(t.type))}</span>${statusBadgeHTML(t.status)}</div>
     <div class="meta">${escapeHTML(meta)}</div>
@@ -468,20 +437,15 @@ function exportReportsCSV(){
   const rows = [
     ["data","godzina","tytuł","typ","koń","jeździec","status","wolontariusz","punkty"],
     ...state.tasks
-      .filter(t=>{
-        const d = t.dateISO; return d>=from && d<=to && (!statusFilter || t.status===statusFilter);
-      })
-      .map(t=>[
-        isoToPL(t.dateISO), t.when||"", t.title, typeLabel(t.type), t.horse||"", t.rider||"", statusText(t.status), t.assignedTo||"", t.points||0
-      ])
+      .filter(t=> t.dateISO>=from && t.dateISO<=to && (!statusFilter || t.status===statusFilter))
+      .map(t=>[ isoToPL(t.dateISO), t.when||"", t.title, typeLabel(t.type), t.horse||"", t.rider||"", statusText(t.status), t.assignedTo||"", t.points||0 ])
   ];
   download(`equiflow_raport_${from}_${to}.csv`, rows.map(r=>r.map(csvEscape).join(",")).join("\n"), "text/csv");
 }
 
-/* ---------- Modal ---------- */
+/* Modal */
 $("#closeModal")?.addEventListener("click", ()=>$("#modal").classList.add("hidden"));
 $("#modal")?.addEventListener("click",(e)=>{ if(e.target.id==="modal") $("#modal").classList.add("hidden"); });
-
 function openTaskModal(t){
   $("#modalTitle").textContent = t.title;
   $("#modalBody").innerHTML = `
@@ -500,10 +464,9 @@ function openTaskModal(t){
 }
 function closeModal(){ $("#modal").classList.add("hidden"); }
 
-/* ---------- Actions (shared) ---------- */
+/* Actions */
 function onApprove(e){ const id=e.currentTarget.dataset.id; const t=state.tasks.find(x=>x.id===id); if(t){ t.status="approved"; persistTasks(); renderAll(); } }
 function onReject(e){ const id=e.currentTarget.dataset.id; const t=state.tasks.find(x=>x.id===id); if(t){ t.status="rejected"; persistTasks(); renderAll(); } }
-
 function statusText(s){ return ({open:"Wolne",taken:"W trakcie",to_review:"Do weryfikacji",approved:"Zatwierdzone",rejected:"Odrzucone"})[s] || s; }
 function classByStatus(s){ return ({open:"open",taken:"taken",to_review:"to_review",approved:"approved"})[s] || ""; }
 function statusBadgeHTML(s){ const map={open:['Wolne','badge-open'],taken:['W trakcie','badge-taken'],to_review:['Do weryfikacji','badge-review'],approved:['Zatwierdzone','badge-approved']}; const [l,c]=map[s]||[s,'badge-tag']; return `<span class="badge-tag ${c}">${l}</span>`; }
@@ -526,14 +489,13 @@ function typeLabel(t){
   return map[t] || t;
 }
 
-/* ---------- Instructor: add tasks ---------- */
-function addInstructorTask(){
+/* Add tasks (INSTRUKTOR) */
+async function addInstructorTask(){
   const tp = $("#i-taskType").value;
   const points = clamp(+($("#i-points").value||2), 0, 4);
   const arena = ($("#i-place").value||"").trim() || null;
   const title = ($("#i-title").value||"").trim();
 
-  // dynamic fields read (if exist)
   const dateISO = $("#i-date")?.value || todayISO();
   const when = $("#i-when")?.value || null;
   const horse = $("#i-horse")?.value && $("#i-horse").value!=="— koń —" ? $("#i-horse").value : null;
@@ -543,48 +505,72 @@ function addInstructorTask(){
   const procType = $("#i-proc")?.value || null;
 
   let t;
+
   if (tp==="prep"){
-    if(!horse || !rider || !when){ alert("Dla Przygotowania: wybierz konia, jeźdźca i godzinę."); return; }
+    const missing = [];
+    if(!horse) missing.push("koń");
+    if(!rider) missing.push("jeździec");
+    if(!when)  missing.push("godzina");
+    if(missing.length){ toastMsg("Uzupełnij: " + missing.join(", ")); return; }
     t = task(title||`Przygotowanie — ${horse} dla ${rider}`, "prep", {arena, horse, rider, when, dateISO, points});
-  } else if (tp==="zabieg"){
-    if(!horse || !procType){ alert("Dla Zabiegu: wybierz konia i typ zabiegu."); return; }
+  }
+  else if (tp==="zabieg"){
+    if(!horse || !procType){ toastMsg("Dla Zabiegu wybierz konia i typ zabiegu."); return; }
     t = task(title||`Zabieg — ${procType} (${horse})`, "zabieg", {arena, horse, when, dateISO, points, procType});
-  } else if (tp==="wyprowadzenie" || tp==="sprowadzenie" || tp==="rozsiodłanie"){
+  }
+  else if (tp==="wyprowadzenie" || tp==="sprowadzenie" || tp==="rozsiodłanie"){
     t = task(title||typeLabel(tp), tp, {arena, when, dateISO, points, daily:true});
-  } else if (tp==="jazda_grupowa"){
-    if(!when || !groupLevel || !horse || !rider){ alert("Dla Jazdy Grupowej: data, godzina, poziom, koń i jeździec."); return; }
+  }
+  else if (tp==="jazda_grupowa"){
+    const missing = [];
+    if(!when) missing.push("godzina");
+    if(!groupLevel) missing.push("poziom (grupa)");
+    if(!horse) missing.push("koń");
+    if(!rider) missing.push("jeździec");
+    if(missing.length){ toastMsg("Uzupełnij: " + missing.join(", ")); return; }
     t = task(title||`Jazda Grupowa — ${groupLevel}`, "jazda_grupowa", {arena, horse, rider, when, dateISO, points:0, groupLevel});
-    createPrepPopup(t);
-  } else if (tp==="jazda_indywidualna"){
-    if(!when || !indivLevel || !horse || !rider){ alert("Dla Jazdy Indywidualnej: data, godzina, poziom, koń i jeździec."); return; }
+    await createPrepPrompt(t);
+  }
+  else if (tp==="jazda_indywidualna"){
+    const missing = [];
+    if(!when) missing.push("godzina");
+    if(!indivLevel) missing.push("poziom (indywidualna)");
+    if(!horse) missing.push("koń");
+    if(!rider) missing.push("jeździec");
+    if(missing.length){ toastMsg("Uzupełnij: " + missing.join(", ")); return; }
     t = task(title||`Jazda Indywidualna — ${indivLevel}`, "jazda_indywidualna", {arena, horse, rider, when, dateISO, points:0, indivLevel});
-    createPrepPopup(t);
+    await createPrepPrompt(t);
   }
 
   state.tasks.unshift(t);
   persistTasks();
-  // wyczyść pola time-only
+
+  // reset podstawowych pól
   $("#i-title").value = ""; $("#i-place").value = ""; $("#i-points").value = 2;
+  // nie czyścimy daty – zostaje dzisiejsza, ale czas zostawiamy do ponownego wpisu
+  if($("#i-when")) $("#i-when").value = "";
+
   renderAll();
 }
 
-/* Popup: dodać „Przygotowanie do Jazdy” dla wolontariusza */
-function createPrepPopup(rideTask){
-  const msg = `Dodano ${typeLabel(rideTask.type)} (${isoToPL(rideTask.dateISO)} ${rideTask.when}).\nCzy chcesz zlecić osiodłanie konia wolontariuszowi?`;
-  if (confirm(msg)){
+/* In-app prompt for „Przygotowanie do Jazdy” */
+async function createPrepPrompt(rideTask){
+  const msg = `Dodano ${typeLabel(rideTask.type)} (${isoToPL(rideTask.dateISO)} ${rideTask.when}).\nCzy zlecić osiodłanie konia wolontariuszowi?`;
+  const ok = await confirmInApp(msg, {title:"Zlecić Przygotowanie do Jazdy?", ok:"Zleć", cancel:"Pomiń"});
+  if (ok){
     const prep = task(`Przygotowanie — ${rideTask.horse} dla ${rideTask.rider}`, "prep", {
       arena: rideTask.arena, horse: rideTask.horse, rider: rideTask.rider,
       when: rideTask.when, dateISO: rideTask.dateISO, points:2
     });
     state.tasks.unshift(prep);
     persistTasks();
+    toastMsg("Dodano zadanie: Przygotowanie do Jazdy");
   }
 }
 
-/* ---------- Persistence & helpers ---------- */
+/* Persistence & helpers */
 function persistTasks(){ save(LS.TASKS, state.tasks); }
 function seedNow(){ const s = seedTasks.map(t=>({...t, id:uid(), ts:Date.now(), dateISO:todayISO()})); save(LS.TASKS, s); return s; }
-function clamp(n,min=0,max=4){ return Math.max(min, Math.min(max, n)); }
 function setCounts(prefix, items){
   if(prefix!=="v") return;
   $("#v-countAll").textContent = items.length;
@@ -593,10 +579,9 @@ function setCounts(prefix, items){
   $("#v-countReview").textContent = items.filter(x=>x.status==="to_review").length;
   $("#v-countApproved").textContent = items.filter(x=>x.status==="approved").length;
 }
-function horseshoesHTML(n){ return Array.from({length:4},(_,i)=>`<span class="hs ${i<n?'fill':''}"></span>`).join(""); }
 function groupBy(arr, key){ return arr.reduce((acc,it)=>{ const k=(it[key]||""); (acc[k]=acc[k]||[]).push(it); return acc; },{}); }
 
-/* ---------- Volunteer: points history & export ---------- */
+/* Volunteer: points history & export */
 function openPointsHistory(){
   const me = (state.volunteer.name||"").trim();
   const approvedMine = state.tasks.filter(t=> t.assignedTo===me && t.status==="approved");
@@ -612,6 +597,7 @@ function openPointsHistory(){
   $("#modal").classList.remove("hidden");
 }
 
+/* Export user CSV */
 function exportCSV(){
   const me = (state.volunteer.name||"").trim();
   if(!me){ alert("Podaj swoje imię i zapisz."); return; }
