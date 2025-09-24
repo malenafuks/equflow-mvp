@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EquiFlow — v1.3</title>
+  <title>EquiFlow — v1.3.1</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
     <span class="brand__dot"></span> EquiFlow
-    <small class="badge badge-soft">MVP v1.3</small>
+    <small class="badge badge-soft">MVP v1.3.1</small>
   </div>
   <div class="userbox">
     <label>Ja jako:
@@ -20,7 +20,6 @@
   </div>
 </header>
 
-<!-- TABS: Instruktor / Wolontariusz / Raporty -->
 <nav id="tabsNav" class="tabs">
   <button class="tab tab-instructor tab-active" data-tab="instructor">Instruktor</button>
   <button class="tab tab-volunteer" data-tab="volunteer">Wolontariusz</button>
@@ -28,7 +27,6 @@
 </nav>
 
 <main class="wrap">
-
   <!-- === INSTRUCTOR TAB === -->
   <section id="tab-instructor" class="tabpane">
     <section class="statusbar">
@@ -38,7 +36,6 @@
       </div>
     </section>
 
-    <!-- DYNAMICZNY FORMULARZ DODAWANIA ZADAŃ -->
     <section class="controls">
       <div class="controls__row stack">
         <label>Rodzaj zadania
@@ -53,7 +50,6 @@
           </select>
         </label>
 
-        <!-- dynamiczne pola -->
         <div id="i-dynamicFields" class="grid2"></div>
 
         <div class="row-inline">
@@ -80,7 +76,6 @@
       </div>
     </section>
 
-    <!-- LISTA ZADAŃ (START: tylko domyślne/codzienne) -->
     <section id="i-list" class="grid"></section>
   </section>
 
@@ -117,8 +112,8 @@
           <option value="">Wszystkie typy</option>
           <option value="porządki">Prace porządkowe</option>
           <option value="siodłanie">Przygotowanie do Jazdy</option>
-          <option value="wyprowadzanie">Wyprowadzenie Stada</option>
-          <option value="sprowadzanie">Sprowadzenie Stada</option>
+          <option value="wyprowadzenie">Wyprowadzenie Stada</option>
+          <option value="sprowadzenie">Sprowadzenie Stada</option>
           <option value="rozsiodłanie">Rozsiodłanie</option>
           <option value="lonżowanie">Lonżowanie</option>
           <option value="klinika">Klinika</option>
@@ -185,7 +180,7 @@
 
 </main>
 
-<!-- MODAL -->
+<!-- MODAL — szczegóły -->
 <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal__card">
     <div class="modal__head">
@@ -197,11 +192,24 @@
   </div>
 </div>
 
-<!-- TOAST -->
+<!-- MODAL — POTWIERDZENIE (in-app) -->
+<div id="confirm" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal__card">
+    <div class="modal__head">
+      <h2 id="confirmTitle">Potwierdź</h2>
+    </div>
+    <div id="confirmBody" class="modal__body"></div>
+    <div class="modal__foot">
+      <button id="confirmCancel" class="btn ghost">Nie</button>
+      <button id="confirmOk" class="btn">Tak</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <footer class="foot">
-  <small>© EquiFlow MVP v1.3 • Instruktor / Wolontariusz / Raporty</small>
+  <small>© EquiFlow MVP v1.3.1 • Instruktor / Wolontariusz / Raporty</small>
 </footer>
 
 <script src="app.js" defer></script>
