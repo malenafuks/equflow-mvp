@@ -2,15 +2,15 @@
   --bg:#f9fafb; --panel:#ffffff; --ink:#1f2937; --muted:#6b7280;
   --accent:#DCC6A0; --accent-ink:#1f2937;
 
-  /* statusy */
   --open:#e8f1ff;        --open-b:#3b82f6;
   --taken:#fff5e6;       --taken-b:#f59e0b;
   --review:#f3e8ff;      --review-b:#a855f7;
   --approved:#e8fbef;    --approved-b:#10b981;
 
-  /* specjalne kolory */
-  --ride:#eefdfc;        --ride-b:#0891b2;   /* jazdy instruktorskie */
-  --daily:#f1f5f9;       --daily-b:#64748b;  /* codzienne domyślne */
+  /* wyróżnienie jazd i zadań codziennych */
+  --ride:#e6fffb;        --ride-b:#06b6d4; /* mocniejszy cyan */
+  --ride-ink:#0f172a;
+  --daily:#f1f5f9;       --daily-b:#64748b;
 
   --radius:16px; --shadow:0 10px 30px rgba(2,6,23,.08);
   --max:1100px; --gap:14px;
@@ -20,12 +20,7 @@
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
 button,input,select{font:inherit;color:inherit}
 
-/* top */
-.topbar{
-  position:sticky;top:0;z-index:10;
-  display:flex;justify-content:space-between;align-items:center;
-  gap:12px;padding:12px 16px;background:var(--panel);border-bottom:1px solid #e5e7eb
-}
+.topbar{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;background:var(--panel);border-bottom:1px solid #e5e7eb}
 .brand{display:flex;align-items:center;gap:8px;font-weight:700}
 .brand__dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
 .badge{padding:2px 8px;border-radius:999px;font-size:.78rem}
@@ -33,11 +28,12 @@ button,input,select{font:inherit;color:inherit}
 .userbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .userbox input{padding:9px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;width:190px}
 
-/* tabs z kolorami */
+/* tabs */
 .tabs{display:flex;gap:8px;max-width:var(--max);margin:10px auto 0;padding:0 16px}
 .tab{padding:10px 14px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
 .tab-instructor{background:#ecfeff;border-color:#a5f3fc}
 .tab-volunteer{background:#fefce8;border-color:#fde68a}
+.tab-admin{background:#e8f7ee;border-color:#bbf7d0}
 .tab-reports{background:#f1f5f9;border-color:#cbd5e1}
 .tab-active{outline:2px solid #c7d2fe}
 .tabpane.hidden{display:none}
@@ -45,10 +41,7 @@ button,input,select{font:inherit;color:inherit}
 .wrap{max-width:var(--max);margin:14px auto 18px;padding:0 16px}
 
 /* statusbar */
-.statusbar{
-  display:flex;justify-content:space-between;align-items:center;gap:10px;
-  padding:12px;background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow)
-}
+.statusbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow)}
 .statusbar__right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .stat{display:flex;align-items:center;gap:10px}
 .points{font-weight:800}
@@ -60,9 +53,7 @@ button,input,select{font:inherit;color:inherit}
 /* controls */
 .controls{margin:16px 0;display:flex;flex-direction:column;gap:10px}
 .controls__row{display:flex;gap:10px;flex-wrap:wrap}
-.controls input[type="search"], .controls select, .controls input[type="text"], .controls input[type="time"], .controls input[type="date"], .controls input[type="number"]{
-  padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;flex:1
-}
+.controls input[type="search"], .controls select, .controls input[type="text"], .controls input[type="time"], .controls input[type="date"], .controls input[type="number"], .controls input[type="tel"], .controls input[type="email"]{padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;flex:1}
 .stack>label{display:flex;flex-direction:column;gap:6px}
 .grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
 .row-inline{display:flex;gap:10px;flex-wrap:wrap}
@@ -82,16 +73,13 @@ button,input,select{font:inherit;color:inherit}
 .chip-approved{background:var(--approved);color:var(--approved-b)}
 .chip-mine{background:#e5e7eb;color:#111827}
 
-/* listy / karty */
+/* lists / cards */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--gap)}
 .list{display:block}
 .list .card{display:grid;grid-template-columns:1fr auto;align-items:center}
 .list .card .kit{grid-column:1 / -1}
 
-.card{
-  background:var(--panel);border:1px solid #e5e7eb;border-radius:18px;box-shadow:var(--shadow);
-  padding:14px;display:flex;flex-direction:column;gap:10px;transition:transform .08s ease, box-shadow .08s ease;
-}
+.card{background:var(--panel);border:1px solid #e5e7eb;border-radius:18px;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:10px;transition:transform .08s ease, box-shadow .08s ease}
 .card:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(2,6,23,.1)}
 .card .title{display:flex;align-items:center;gap:10px}
 .card .title h3{margin:0;font-size:1rem}
@@ -102,19 +90,18 @@ button,input,select{font:inherit;color:inherit}
 .badge-taken{background:var(--taken);color:var(--taken-b);border-color:var(--taken-b)}
 .badge-review{background:var(--review);color:var(--review-b);border-color:var(--review-b)}
 .badge-approved{background:var(--approved);color:var(--approved-b);border-color:var(--approved-b)}
-.badge-ride{background:var(--ride);color:var(--ride-b);border-color:var(--ride-b)}
+.badge-ride{background:var(--ride);color:var(--ride-ink);border-color:var(--ride-b)}
 .badge-daily{background:var(--daily);color:var(--daily-b);border-color:var(--daily-b)}
 
 .card.open{border-color:var(--open-b)}
 .card.taken{border-color:var(--taken-b)}
 .card.to_review{border-color:var(--review-b)}
 .card.approved{border-color:var(--approved-b)}
-.card.ride{border-color:var(--ride-b)}
-.card.future{opacity:.7}
+.card.ride{border-color:var(--ride-b);background:var(--ride)}
+.card.future{opacity:.72}
 
 /* buttons */
 .kit{display:flex;justify-content:space-between;gap:10px;align-items:center}
-.kit .podkowy{gap:3px}
 .meta{color:var(--muted);font-size:.92rem}
 .actions{margin:18px 0;display:flex;gap:10px;flex-wrap:wrap}
 
@@ -122,19 +109,25 @@ button,input,select{font:inherit;color:inherit}
 .btn:hover{filter:brightness(.97)}
 .btn.small{padding:6px 10px}
 .btn.ghost{background:#fff}
-
 .iconbtn{border:none;background:#fff;border-radius:10px;box-shadow:var(--shadow);padding:4px 10px;cursor:pointer}
 .iconbtn:hover{filter:brightness(.97)}
 
-/* modal & toast */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;padding:20px}
-.modal.hidden{display:none}
-.modal__card{background:#fff;max-width:720px;width:100%;border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
-.modal__head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #e5e7eb}
-.modal__body{padding:16px;display:flex;flex-direction:column;gap:12px}
-.modal__foot{padding:12px 16px;border-top:1px solid #e5e7eb;display:flex;gap:10px;flex-wrap:wrap}
+/* schedule (admin) */
+.schedule.card{margin-top:16px}
+.sched-grid{display:grid;gap:8px}
+.sched-row{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.sched-time{min-width:78px;font-weight:700}
+.sched-slot{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:10px;min-width:220px}
+.sched-slot h4{margin:0 0 6px 0;font-size:.95rem}
+.sched-slot .line{font-size:.92rem;color:var(--ink)}
+.sched-slot .line small{color:var(--muted)}
+.sched-limit{color:#b91c1c;font-weight:600}
 
-.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s ease, transform .2s ease;box-shadow:var(--shadow);z-index:50}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-.foot{padding:30px 16px;text-align:center;color:var(--muted)}
+/* print */
+@media print{
+  .topbar,.tabs,.controls,.statusbar__right,.actions,#toast,.modal{display:none !important}
+  body{background:#fff;color:#000}
+  .wrap{max-width:none;margin:0;padding:0}
+  .card{box-shadow:none;border-color:#000}
+  .sched-slot{border-color:#000}
+}
