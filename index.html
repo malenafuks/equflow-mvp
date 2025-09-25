@@ -24,9 +24,9 @@
 </header>
 
 <nav id="tabsNav" class="tabs">
-  <button class="tab tab-instructor tab-active" data-tab="instructor">Instruktor</button>
+  <button class="tab tab-admin tab-active" data-tab="admin">Administracja</button>
+  <button class="tab tab-instructor" data-tab="instructor">Instruktor</button>
   <button class="tab tab-volunteer" data-tab="volunteer">Wolontariusz</button>
-  <button class="tab tab-admin" data-tab="admin">Administracja</button>
   <button class="tab tab-reports" data-tab="reports">Raporty</button>
 </nav>
 
@@ -40,7 +40,7 @@
       </div>
     </section>
 
-    <section class="controls">
+ <section class="controls compact">
       <div class="controls__row stack">
         <label>Rodzaj zadania
           <select id="i-taskType">
@@ -150,11 +150,11 @@
       <div class="statusbar__right">
         <button id="a-print" class="btn small">Drukuj grafik</button>
         <button id="a-generate" class="btn small">Wygeneruj grafik dnia</button>
-        <button id="a-refresh" class="btn small ghost">Odśwież</button>
+          <button id="a-refresh" class="btn small ghost">Odśwież</button>
       </div>
     </section>
 
-    <section class="controls">
+ <section class="controls compact">
       <div class="controls__row stack">
         <h3>Dodaj jeźdźca</h3>
         <div class="grid2">
@@ -184,6 +184,12 @@
           </label>
         </div>
       <button id="a-addRider" class="btn">Zapisz na jazdę</button>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:10px 0">
+<h3>Dodaj konia</h3>
+<div class="grid2">
+  <label>Nazwa konia <input id="a-horseName" type="text" placeholder="np. Iskra" /></label>
+</div>
+<button id="a-addHorse" class="btn small">Dodaj konia</button>
       </div>
 
       <div class="controls__row">
