@@ -456,3 +456,28 @@ function onQuickDone(e){ const id=e.currentTarget.dataset.id; const t=state.task
 function takeTask(t){
   const me = (state.volunteer.name||"").trim();
   if(!me){ alert("Podaj swoje imię i zapisz."); return; }
+  if(t.status!=="open"){ alert("To zadanie nie jest już wolne."); return; }
+  t.status = "taken";
+  t.assignedTo = me;
+  persistAll();
+
+  if (state.settings.demoAutoApprove){
+    t.status = "approved";
+    persistAll();
+  }
+
+  renderAll();
+}
+
+function markDone(t){
+  if(t.status!=="taken"){ alert("To zadanie nie jest w trakcie."); return; }
+  t.status = "to_review";
+  persistAll();
+
+  if (state.settings.demoAutoApprove){
+    t.status = "approved";
+    persistAll();
+  }
+
+  renderAll();
+}
