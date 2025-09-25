@@ -61,6 +61,22 @@ button,input,select{font:inherit;color:inherit}
 .viewtog{display:flex;gap:6px}
 .viewbtn{border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer}
 .view-active{background:#eef2ff;border-color:#c7d2fe}
+/* === tryb kompaktowy filtrów (mniej pionu) === */
+.controls.compact .controls__row{ gap:8px; }
+.controls.compact input[type="search"],
+.controls.compact select,
+.controls.compact input[type="text"],
+.controls.compact input[type="time"],
+.controls.compact input[type="date"],
+.controls.compact input[type="number"],
+.controls.compact input[type="tel"],
+.controls.compact input[type="email"]{
+  padding:6px 8px;
+  height:34px;
+  border-radius:10px;
+}
+.controls.compact .viewtog .viewbtn{ padding:6px 8px; }
+.controls.compact .chips .chip{ padding:6px 10px; }
 
 /* chips */
 .chips{display:flex;flex-wrap:wrap;gap:8px}
