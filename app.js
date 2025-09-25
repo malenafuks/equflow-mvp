@@ -1,11 +1,11 @@
-/* EquiFlow v1.4 — Instruktor: lepsze kolory jazd • Administracja (riders/koń/instruktor, kohorty, grafik dzienny) */
+/* EquiFlow v1.4 — FIXED FULL APP.JS (Admin first, compact UI, daily tasks auto, add rider/horse, instructor filters) */
 
 const LS = {
   TASKS: "equiflow_tasks_v1",
   USER: "equiflow_user_v1",
   SETTINGS: "equiflow_settings_v1",
-  HORSES: "equiflow_horses_v2",      // v2: obiekty {name,label}
-  RIDERS: "equiflow_riders_v2",      // v2: obiekty riders z danymi kontakt.
+  HORSES: "equiflow_horses_v2",
+  RIDERS: "equiflow_riders_v2",
   INSTRUCTORS: "equiflow_instructors_v1",
   UI: "equiflow_ui_v1"
 };
@@ -23,19 +23,25 @@ function isFutureISO(iso){ return new Date(iso) > new Date(todayISO()); }
 function csvEscape(val){ const s=String(val??""); return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }
 function download(name, data, mime="text/plain"){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([data],{type:mime})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
 function clamp(n,min=0,max=4){ return Math.max(min, Math.min(max, n)); }
-function toastMsg(msg){ const el=$("#toast"); el.textContent=msg; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"), 1800); }
+function toastMsg(msg){ const el=$("#toast"); if(!el) return; el.textContent=msg; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"), 1800); }
 function weekdayPL(dISO){
   const d=new Date(dISO||todayISO());
   const days=["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
   return days[d.getDay()];
 }
+function escapeHTML(s){
+  return String(s ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
 
 /* ---------- Seeds ---------- */
-// Konie: 15 szt., w UI Administracji pokazujemy label "koń X"
 const seedHorseNames = ["Itaka","Basia","Nicpoń","Jurek","Prada","Emocja","Apollo","Mokka","Iskra","Orion","Luna","Tango","Sahara","Hermes","Bella"];
 const seedHorses = seedHorseNames.map(n=>({name:n,label:`koń ${n}`}));
 
-// Instruktorzy: pan/pani (dynamicznie)
 const seedInstructors = [
   {first:"Anna", gender:"F"},
   {first:"Katarzyna", gender:"F"},
@@ -45,7 +51,6 @@ const seedInstructors = [
   {first:"Tomasz", gender:"M"},
 ].map(p=>({...p, id:uid(), label: (p.gender==="F"?"pani ":"pan ") + p.first}));
 
-// 20 jeźdźców z różnymi datami/godzinami/poziomami
 const levels = ["kłus","kłus-galop","obóz","teren","lonża"];
 function addDays(iso,days){ const d=new Date(iso); d.setDate(d.getDate()+days); const z=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
 const seedRiders = (()=> {
@@ -62,7 +67,7 @@ const seedRiders = (()=> {
     level: levels[i % levels.length],
     dateISO: addDays(base, i % 5),
     when: times[i % times.length],
-    instructorId: seedInstructors[i % seedInstructors.length].id, // rozdzielamy po kolei
+    instructorId: seedInstructors[i % seedInstructors.length].id,
     horse: null
   }));
 })();
@@ -98,6 +103,35 @@ const seedTasks = [
   task("Dziennikarz/Kronikarz — dokumentuj dzień", "dziennikarz", {points:2}),
 ];
 
+/* brakująca funkcja z Twojego pliku */
+function seedNow(){
+  // dziś podstawowy zestaw zadań codziennych
+  const base = todayISO();
+  return [
+    task("Prace porządkowe — stajnia", "porządki", {points:2, daily:true, dateISO:base}),
+    task("Wyprowadzenie Stada", "wyprowadzenie", {points:1, daily:true, dateISO:base}),
+    task("Sprowadzenie Stada", "sprowadzenie", {points:1, daily:true, dateISO:base}),
+  ];
+}
+
+function ensureDailyTasksForToday(){
+  const today = todayISO();
+  const need = [
+    {title:"Prace porządkowe — stajnia", type:"porządki", points:2},
+    {title:"Wyprowadzenie Stada", type:"wyprowadzenie", points:1},
+    {title:"Sprowadzenie Stada", type:"sprowadzenie", points:1},
+  ];
+  let added = 0;
+  need.forEach(n=>{
+    const exists = state.tasks.some(t=> t.type===n.type && t.dateISO===today);
+    if(!exists){
+      state.tasks.unshift(task(n.title, n.type, {points:n.points, daily:true, dateISO:today}));
+      added++;
+    }
+  });
+  if (added>0) persistAll();
+}
+
 /* ---------- State ---------- */
 let state;
 
@@ -110,13 +144,17 @@ document.addEventListener("DOMContentLoaded", () => {
     riders: load(LS.RIDERS) || seedRiders,
     instructors: load(LS.INSTRUCTORS) || seedInstructors,
     ui: load(LS.UI) || {
-      tab: "instructor",
+      tab: "admin", // start od Admin
       v: { status:"all", onlyMine:false, type:"", view:"cards", search:"" },
       i: { view:"cards" },
       r: { view:"cards", from: todayISO(), to: todayISO(), group:"none", status:"" },
       a: { day: todayISO() }
     }
   };
+
+  // wymuś Admin na starcie i codzienne zadania
+  ensureDailyTasksForToday();
+  state.ui.tab = "admin";
 
   // Tabs
   $("#tabsNav").addEventListener("click",(e)=>{
@@ -133,7 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAll();
   });
 
-  // Demo switch
+  // Demo switch (vol)
   const demoChk = $("#demoAutoApprove");
   if (demoChk){
     demoChk.checked = !!state.settings.demoAutoApprove;
@@ -158,11 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
   bindReportsUI();
 
   /* -------- ADMIN -------- */
-  $("#a-instructor").innerHTML = state.instructors.map(i=>`<option value="${i.id}">${escapeHTML(i.label)}</option>`).join("");
-  $("#a-addRider").addEventListener("click", adminAddRider);
-  $("#a-day").value = state.ui.a.day;
-  $("#a-refresh").addEventListener("click", ()=>{ state.ui.a.day=$("#a-day").value||todayISO(); save(LS.UI,state.ui); renderAdmin(); });
-  $("#a-print").addEventListener("click", ()=>window.print());
+  initAdmin();
 
   // Start
   switchTab(state.ui.tab);
@@ -219,8 +253,13 @@ function renderAll(){ renderInstructor(); renderVolunteer(); renderReports(); re
 
 /* INSTRUCTOR */
 function renderDynamicFields(){
-  const c = $("#i-dynamicFields"); c.innerHTML = "";
+  const c = $("#i-dynamicFields"); if(!c) return;
+  c.innerHTML = "";
   const type = $("#i-taskType").value;
+
+  // safety (gdy LS pusty)
+  if(!state.horses || !state.horses.length) state.horses = seedHorses.slice();
+  if(!state.riders || !state.riders.length) state.riders = seedRiders.slice();
 
   const date = inputDate("Data", "i-date", todayISO());
   const time = inputTime("Godzina", "i-when");
@@ -241,7 +280,6 @@ function inputSelect(label,id,arr){ const el=document.createElement("label"); el
 function append(parent,...children){ children.forEach(ch=>parent.appendChild(ch)); }
 
 async function addInstructorTask(){
-  // ensure fields exist
   if (!$("#i-date")) renderDynamicFields();
 
   const tp = $("#i-taskType").value;
@@ -301,6 +339,7 @@ function renderInstructor(){
   const items = state.tasks.filter(t => t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type));
   const other = state.tasks.filter(t => !(t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type)));
   const list = $("#i-list");
+  if(!list) return;
   list.className = state.ui.i.view==="list" ? "list" : "grid";
   list.innerHTML = items.concat(other).map(cardHTMLInstructor).join("");
 
@@ -366,7 +405,6 @@ function assignVolunteerUI(id){
   `;
 }
 function uniqueRiderNames(){
-  // lista imię + nazwisko z admina (dla wygody szybkiego wpisu w Instruktorze)
   return Array.from(new Set(state.riders.map(r=>`${r.first} ${r.last}`)));
 }
 function uniqueAssignedCandidates(){
@@ -393,6 +431,14 @@ function onDeleteTask(e){
   state.tasks = state.tasks.filter(x=>x.id!==id);
   persistAll(); renderAll();
 }
+function onApprove(e){
+  const id = e.currentTarget.dataset.id; const t = state.tasks.find(x=>x.id===id); if(!t) return;
+  t.status="approved"; persistAll(); renderAll();
+}
+function onReject(e){
+  const id = e.currentTarget.dataset.id; const t = state.tasks.find(x=>x.id===id); if(!t) return;
+  t.status="rejected"; persistAll(); renderAll();
+}
 
 /* VOLUNTEER */
 function renderVolunteer(){
@@ -414,6 +460,7 @@ function renderVolunteer(){
   });
 
   const list = $("#v-list");
+  if(!list) return;
   list.className = state.ui.v.view==="list" ? "list" : "grid";
   list.innerHTML = items.map(cardHTMLVolunteer).join("");
   list.querySelectorAll(".more").forEach(b=>b.addEventListener("click", onOpenTask));
@@ -481,3 +528,264 @@ function markDone(t){
 
   renderAll();
 }
+
+/* ---------- REPORTS ---------- */
+function renderReports(){
+  const list = $("#r-list"); if(!list) return;
+
+  let from = state.ui.r.from || todayISO();
+  let to   = state.ui.r.to   || todayISO();
+  const statusFilter = state.ui.r.status;
+
+  const span = (d)=> new Date(d).getTime();
+  const items = state.tasks.filter(t=>{
+    const inRange = span(t.dateISO) >= span(from) && span(t.dateISO) <= span(to);
+    const stOk = !statusFilter || t.status===statusFilter;
+    return inRange && stOk;
+  });
+
+  setCounts("r", items);
+
+  list.className = state.ui.r.view==="list" ? "list" : "grid";
+  list.innerHTML = items.map(t=>`
+    <article class="card ${classByStatus(t.status)} ${isFutureISO(t.dateISO)?'future':''}">
+      <div class="title"><h3>${escapeHTML(t.title)}</h3></div>
+      <div class="badges">
+        <span class="badge-tag ${["jazda_grupowa","jazda_indywidualna"].includes(t.type)?'badge-ride':''} ${t.daily?'badge-daily':''}">
+          ${escapeHTML(typeLabel(t.type))}
+        </span>
+        ${statusBadgeHTML(t.status)}
+      </div>
+      <div class="meta">
+        ${escapeHTML([isoToPL(t.dateISO), t.when?`godz. ${t.when}`:"", t.horse?`koń: ${t.horse}`:"", t.rider?`jeździec: ${t.rider}`:""].filter(Boolean).join(" • "))}
+      </div>
+    </article>
+  `).join("");
+}
+
+/* ---------- ADMIN ---------- */
+function initAdmin(){
+  const aInstr = $("#a-instructor");
+  if (aInstr){
+    aInstr.innerHTML = state.instructors
+      .map(i=>`<option value="${i.id}">${escapeHTML(i.label)}</option>`).join("");
+  }
+
+  $("#a-addRider")?.addEventListener("click", adminAddRider);
+
+  $("#a-day").value = state.ui.a.day;
+  const aDate = $("#a-date");
+  if (aDate && !aDate.value) aDate.value = state.ui.a.day || todayISO();
+
+  $("#a-day").addEventListener("change", ()=>{
+    state.ui.a.day = $("#a-day").value || todayISO();
+    save(LS.UI, state.ui);
+    renderAdmin();
+  });
+
+  $("#a-refresh")?.addEventListener("click", ()=>{
+    state.ui.a.day = $("#a-day").value || todayISO();
+    save(LS.UI, state.ui);
+    renderAdmin();
+  });
+
+  $("#a-print").addEventListener("click", ()=>window.print());
+
+  $("#a-addHorse")?.addEventListener("click", ()=>{
+    const name = ($("#a-horseName")?.value || "").trim();
+    if(!name){ toastMsg("Podaj nazwę konia"); return; }
+    const exists = state.horses.some(h=>h.name.toLowerCase()===name.toLowerCase());
+    if(exists){ toastMsg("Koń już istnieje"); return; }
+    state.horses.push({name, label:`koń ${name}`});
+    save(LS.HORSES, state.horses);
+    toastMsg("Dodano konia");
+    $("#a-horseName").value = "";
+    renderDynamicFields();
+    renderAdmin();
+  });
+}
+
+function adminAddRider(){
+  const first = ($("#a-first")?.value || "").trim();
+  const last  = ($("#a-last")?.value  || "").trim();
+  const tel   = ($("#a-phone")?.value || "").trim();
+  const email = ($("#a-email")?.value || "").trim();
+  const rideType = $("#a-rideType")?.value || "jazda_grupowa";
+  const level    = $("#a-level")?.value || "kłus";
+  const dateISO  = ($("#a-date")?.value || state.ui.a.day || todayISO());
+  const when     = ($("#a-when")?.value || "");
+  const instructorId = $("#a-instructor")?.value || (state.instructors[0]?.id || null);
+
+  if(!first || !last){ toastMsg("Podaj imię i nazwisko jeźdźca"); return; }
+  if(!when){ toastMsg("Podaj godzinę jazdy"); return; }
+
+  const r = {
+    id: uid(), first, last, tel, email, level,
+    dateISO, when, instructorId, horse: null
+  };
+  state.riders.push(r);
+  save(LS.RIDERS, state.riders);
+
+  toastMsg("Zapisano na jazdę");
+  $("#a-first").value=""; $("#a-last").value="";
+  $("#a-phone").value=""; $("#a-email").value="";
+
+  renderAdmin();
+  renderDynamicFields();
+}
+
+function renderAdmin(){
+  // etykieta dnia
+  const dayISO = state.ui.a.day || todayISO();
+  const label = `Planowanie — ${isoToPL(dayISO)} (${weekdayPL(dayISO)})`;
+  $("#adminTodayLabel").textContent = label;
+
+  // grupujemy zapisy (riders) po godzinach
+  const ridersForDay = state.riders
+    .filter(r => r.dateISO === dayISO)
+    .sort((a,b)=> (a.when||"").localeCompare(b.when||""));
+
+  const byTime = new Map();
+  ridersForDay.forEach(r=>{
+    if(!byTime.has(r.when)) byTime.set(r.when, []);
+    byTime.get(r.when).push(r);
+  });
+
+  const grid = $("#scheduleGrid"); if(!grid) return;
+  grid.innerHTML = "";
+  [...byTime.keys()].sort().forEach(time=>{
+    const items = byTime.get(time);
+    const row = document.createElement("div");
+    row.className = "sched-row";
+
+    const timeEl = document.createElement("div");
+    timeEl.className = "sched-time";
+    timeEl.textContent = time;
+    row.appendChild(timeEl);
+
+    items.forEach(r=>{
+      const instr = state.instructors.find(i=>i.id===r.instructorId);
+      const slot = document.createElement("div");
+      slot.className = "sched-slot";
+      slot.innerHTML = `
+        <h4>${escapeHTML(r.first)} ${escapeHTML(r.last)} <small>(${escapeHTML(r.level)})</small></h4>
+        <div class="line">Instruktor: <strong>${escapeHTML(instr?instr.label:"—")}</strong></div>
+        <div class="line">Koń: <strong>${escapeHTML(r.horse||"—")}</strong></div>
+      `;
+      row.appendChild(slot);
+    });
+
+    grid.appendChild(row);
+  });
+
+  $("#schedTitle").textContent = "Grafik dnia";
+}
+
+/* ---------- Common UI bits ---------- */
+function statusBadgeHTML(st){
+  const map = {open:"badge-open",taken:"badge-taken",to_review:"badge-review",approved:"badge-approved",rejected:"badge-review"};
+  const txt = {open:"Wolne",taken:"W trakcie",to_review:"Do weryf.",approved:"Zatwierdzone",rejected:"Odrzucone"};
+  return `<span class="badge-tag ${map[st]||""}">${txt[st]||st}</span>`;
+}
+function classByStatus(st){ return st==="to_review" ? "to_review" : (st||"open"); }
+function typeLabel(t){
+  const map = {
+    "porządki":"Prace porządkowe",
+    "wyprowadzenie":"Wyprowadzenie Stada",
+    "sprowadzenie":"Sprowadzenie Stada",
+    "rozsiodłanie":"Rozsiodłanie",
+    "prep":"Przygotowanie do Jazdy",
+    "zabieg":"Zabieg",
+    "dziennikarz":"Dziennikarz/Kronikarz",
+    "luzak":"Luzak",
+    "jazda_grupowa":"Jazda Grupowa",
+    "jazda_indywidualna":"Jazda Indywidualna"
+  };
+  return map[t] || t;
+}
+function openTaskModal(t){
+  const modal = $("#modal"); if(!modal) return;
+  $("#modalTitle").textContent = t.title;
+  $("#modalBody").innerHTML = `
+    <p><strong>Typ:</strong> ${escapeHTML(typeLabel(t.type))}</p>
+    <p><strong>Data:</strong> ${escapeHTML(isoToPL(t.dateISO))} ${t.when?("godz. "+escapeHTML(t.when)):""}</p>
+    <p><strong>Koń:</strong> ${escapeHTML(t.horse||"—")}</p>
+    <p><strong>Jeździec:</strong> ${escapeHTML(t.rider||"—")}</p>
+    <p><strong>Arena:</strong> ${escapeHTML(t.arena||"—")}</p>
+    <p><strong>Status:</strong> ${escapeHTML(t.status)}</p>
+  `;
+  $("#modalFoot").innerHTML = `<button id="closeModal" class="iconbtn" aria-label="Zamknij">Zamknij</button>`;
+  modal.classList.remove("hidden");
+  $("#closeModal").addEventListener("click", ()=> modal.classList.add("hidden"));
+  modal.addEventListener("click", (e)=>{ if(e.target===modal) modal.classList.add("hidden"); });
+}
+function confirmInApp(message, opts={}){
+  const c = $("#confirm"); if(!c) return Promise.resolve(false);
+  $("#confirmBody").textContent = message;
+  $("#confirmTitle").textContent = opts.title || "Potwierdź";
+  const okBtn = $("#confirmOk");
+  const cancelBtn = $("#confirmCancel");
+  c.classList.remove("hidden");
+  return new Promise(res=>{
+    const done=(v)=>{ c.classList.add("hidden"); okBtn.onclick=null; cancelBtn.onclick=null; res(v); };
+    okBtn.textContent = opts.ok || "Tak";
+    cancelBtn.textContent = opts.cancel || "Nie";
+    okBtn.onclick = ()=> done(true);
+    cancelBtn.onclick = ()=> done(false);
+    c.addEventListener("click",(e)=>{ if(e.target===c) done(false); }, {once:true});
+  });
+}
+function persistAll(){
+  save(LS.USER, state.volunteer);
+  save(LS.TASKS, state.tasks);
+  save(LS.SETTINGS, state.settings);
+  save(LS.HORSES, state.horses);
+  save(LS.RIDERS, state.riders);
+  save(LS.INSTRUCTORS, state.instructors);
+  save(LS.UI, state.ui);
+}
+
+function setChipActive(prefix, key){
+  const ids = { v:["All","Open","Taken","Review","Approved"], r:["view-cards","view-list"] };
+  // tylko dla wolontariusza używamy chips
+  $$("#tab-volunteer .chip").forEach(el=>el.classList.remove("chip-active"));
+  $("#v-chip"+(key[0].toUpperCase()+key.slice(1)))?.classList.add("chip-active");
+}
+function setCounts(prefix, items){
+  if(prefix==="v"){
+    $("#v-countAll").textContent = String(items.length);
+    $("#v-countOpen").textContent = String(items.filter(t=>t.status==="open").length);
+    $("#v-countTaken").textContent = String(items.filter(t=>t.status==="taken").length);
+    $("#v-countReview").textContent = String(items.filter(t=>t.status==="to_review").length);
+    $("#v-countApproved").textContent = String(items.filter(t=>t.status==="approved").length);
+  }
+}
+
+function horseshoesHTML(n){
+  const total = 4;
+  const fill = Math.max(0, Math.min(total, n));
+  return Array.from({length:total}).map((_,i)=>`<span class="hs ${i<fill?'fill':''}"></span>`).join("");
+}
+
+/* CSV + resety (demo) */
+function exportCSV(){
+  const me = (state.volunteer.name||"").trim();
+  const mine = state.tasks.filter(t=>t.assignedTo===me);
+  const head = ["id","data","godzina","tytul","typ","kon","arena","status","punkty"];
+  const rows = mine.map(t=>[
+    t.id, t.dateISO, t.when||"", t.title, t.type, t.horse||"", t.arena||"", t.status, t.points
+  ].map(csvEscape).join(","));
+  download(`equiflow_${me||"vol"}_${todayISO()}.csv`, [head.join(","), ...rows].join("\n"), "text/csv");
+}
+function resetAll(){
+  localStorage.removeItem(LS.TASKS);
+  state.tasks = seedNow();
+  persistAll(); renderAll();
+  toastMsg("Zresetowano dane do domyślnych");
+}
+function hardReset(){
+  Object.values(LS).forEach(k=>localStorage.removeItem(k));
+  location.reload();
+}
+
+/* ---------- END ---------- */
