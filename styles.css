@@ -157,3 +157,8 @@ button,input,select{font:inherit;color:inherit}
 
 /* Tylko widok listy – ukryj przełączniki */
 .viewtog{display:none !important}
+/* === Admin: kompakt i bez rozciągania przycisku === */
+#tab-admin .controls.compact .controls__row{ align-items:flex-start; }
+#tab-admin #a-addRider{ align-self:flex-start; height:auto; }
+#tab-admin .controls h3{ margin:0 0 6px; }
+#tab-admin .grid2{ gap:8px; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); }
