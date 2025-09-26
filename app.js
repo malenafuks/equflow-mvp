@@ -171,8 +171,6 @@ save(LS.UI, state.ui);
 
 
   // wymuś Admin na starcie i codzienne zadania
-  ensureDailyTasksForToday();
-  state.ui.tab = "admin";
 
   // Tabs
   $("#tabsNav").addEventListener("click",(e)=>{
@@ -615,20 +613,6 @@ function initAdmin(){
     renderAdmin();
   });
   $("#a-print").addEventListener("click", ()=>window.print());
-}
-
-  $("#a-addHorse")?.addEventListener("click", ()=>{
-    const name = ($("#a-horseName")?.value || "").trim();
-    if(!name){ toastMsg("Podaj nazwę konia"); return; }
-    const exists = state.horses.some(h=>h.name.toLowerCase()===name.toLowerCase());
-    if(exists){ toastMsg("Koń już istnieje"); return; }
-    state.horses.push({name, label:`koń ${name}`});
-    save(LS.HORSES, state.horses);
-    toastMsg("Dodano konia");
-    $("#a-horseName").value = "";
-    renderDynamicFields();
-    renderAdmin();
-  });
 }
 
 function adminAddRider(){
