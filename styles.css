@@ -129,15 +129,54 @@ button,input,select{font:inherit;color:inherit}
 .iconbtn:hover{filter:brightness(.97)}
 
 /* schedule (admin) */
-.schedule.card{margin-top:16px}
-.sched-grid{display:grid;gap:8px}
-.sched-row{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
-.sched-time{min-width:78px;font-weight:700}
-.sched-slot{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:10px;min-width:220px}
-.sched-slot h4{margin:0 0 6px 0;font-size:.95rem}
-.sched-slot .line{font-size:.92rem;color:var(--ink)}
-.sched-slot .line small{color:var(--muted)}
-.sched-limit{color:#b91c1c;font-weight:600}
+/* schedule (admin) — TABELA: godzina = rząd, instruktorzy = kolumny */
+.schedule.card{ margin-top:16px }
+.sched-grid{ display:flex; flex-direction:column; gap:0; }
+
+/* nagłówek i rzędy */
+.sched-row{ display:flex; align-items:stretch; gap:0; border-bottom:1px solid #e5e7eb; }
+.sched-row.header{ position:sticky; top:0; z-index:1; background:#f8fafc; border-top:1px solid #e5e7eb; }
+
+/* pierwsza kolumna: godzina */
+.sched-time{
+  flex:0 0 90px;
+  padding:10px 12px;
+  font-weight:700;
+  border-right:2px solid #111827;   /* grubszy separator jak na screenie */
+  background:#fff;
+}
+
+/* kolumny instruktorów */
+.sched-slot{
+  flex:1 1 0;
+  min-height:72px;
+  padding:10px 12px;
+  border-left:1px solid #e5e7eb;
+  background:#fff;
+}
+.sched-row.header .sched-slot{
+  font-weight:600;
+  background:#f8fafc;
+}
+
+/* wpis jeźdźca w komórce */
+.sched-slot .rider{
+  padding:6px 0;
+  border-bottom:1px dashed #e5e7eb;
+  font-size:.96rem;
+}
+.sched-slot .rider:last-child{ border-bottom:none; }
+
+/* delikatne wyróżnienie godzin porannych/pop. (opcjonalne) */
+.sched-row:nth-child(odd) .sched-time{ background:#fcfcfd; }
+
+/* druk – wyraźne linie tabeli */
+@media print{
+  .sched-row{ border-bottom:1px solid #000; }
+  .sched-time{ border-right:2px solid #000; }
+  .sched-slot{ border-left:1px solid #000; }
+}
+
 
 /* print */
 @media print{
