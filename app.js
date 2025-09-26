@@ -624,51 +624,5 @@ function renderReports(){
 `).join("");
 }
 
-/* ---------- Dynamic Fields: wspólne dla Admin i Instruktor ---------- */
-function buildTaskFields(containerId, typePrefix){
-  const c = document.querySelector(containerId);
-  if(!c) return;
-  c.innerHTML = "";
 
-  const type = document.querySelector(`#${typePrefix}-taskType`)?.value;
-
-  const date = inputDate("Data", `${typePrefix}-date`, todayISO());
-  const time = inputTime("Godzina", `${typePrefix}-when`);
-  const horse = inputSelect("Koń", `${typePrefix}-horse`, ["— koń —"].concat(state.horses.map(h=>h.name)));
-  const rider = inputSelect("Jeździec", `${typePrefix}-rider`, ["— jeździec —"].concat(uniqueRiderNames()));
-  const levelGroup = inputSelect("Poziom (grupa)", `${typePrefix}-level-group`, ["kłus","kłus-galop","obóz","teren"]);
-  const levelIndiv = inputSelect("Poziom (indywidualna)", `${typePrefix}-level-indiv`, ["lonża","kłus","kłus-galop"]);
-
-  if(type==="prep"){ append(c, date, time, horse, rider); }
-  else if(type==="zabieg"){ 
-    const proc = inputSelect("Typ zabiegu",`${typePrefix}-proc`,["Masaż","Derka magnetyczna","Kopyta — pielęgnacja","Kąpiel","Stretching"]);
-    append(c, date, horse, proc);
-  }
-  else if(type==="wyprowadzenie" || type==="sprowadzenie" || type==="rozsiodłanie"){ append(c, date, time); }
-  else if(type==="jazda_grupowa"){ append(c, date, time, levelGroup, horse, rider); }
-  else if(type==="jazda_indywidualna"){ append(c, date, time, levelIndiv, horse, rider); }
-}
-
-/* ---------- Toast UX (dymek info) ---------- */
-function showToast(msg){
-  let el = document.getElementById("toast");
-  if(!el){
-    el = document.createElement("div");
-    el.id = "toast";
-    el.style.position = "fixed";
-    el.style.bottom = "20px";
-    el.style.left = "50%";
-    el.style.transform = "translateX(-50%)";
-    el.style.padding = "10px 20px";
-    el.style.background = "#333";
-    el.style.color = "#fff";
-    el.style.borderRadius = "8px";
-    el.style.opacity = "0";
-    el.style.transition = "opacity .3s";
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.style.opacity = "1";
-  setTimeout(()=> el.style.opacity="0", 1800);
-}
 
