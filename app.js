@@ -570,7 +570,11 @@ function initAdmin(){
     aInstr.innerHTML = state.instructors
       .map(i=>`<option value="${i.id}">${escapeHTML(i.label)}</option>`).join("");
   }
-
+  const aHorse = $("#a-horse");
+  if (aHorse){
+    aHorse.innerHTML = state.horses
+      .map(h=>`<option value="${escapeHTML(h.name)}">${escapeHTML(h.name)}</option>`).join("");
+  }
   $("#a-addRider")?.addEventListener("click", adminAddRider);
 
   $("#a-day").value = state.ui.a.day;
