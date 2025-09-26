@@ -1,4 +1,4 @@
-/* EquiFlow v1.4 — FIXED FULL APP.JS (Admin first, compact UI, daily tasks auto, add rider, list-only views) */
+/* EquiFlow v1.5 — dymki przy dodawaniu, fix dodawania "Przygotowanie", Instruktor: widok listy + compact */
 
 const LS = {
   TASKS: "equiflow_tasks_v1",
@@ -36,6 +36,38 @@ function escapeHTML(s){
     .replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;")
     .replace(/'/g,"&#039;");
+}
+
+/* Mały dymek przy przycisku (sam znika) */
+function flash(anchorSelector, text){
+  const anchor = typeof anchorSelector==="string" ? $(anchorSelector) : anchorSelector;
+  if(!anchor){ toastMsg(text); return; }
+  const tip = document.createElement("div");
+  tip.textContent = text;
+  tip.style.position = "absolute";
+  tip.style.zIndex = "999";
+  tip.style.padding = "6px 10px";
+  tip.style.background = "#111827";
+  tip.style.color = "#fff";
+  tip.style.borderRadius = "10px";
+  tip.style.fontSize = ".9rem";
+  tip.style.boxShadow = "0 8px 20px rgba(0,0,0,.15)";
+  tip.style.opacity = "0";
+  tip.style.transform = "translateY(-6px)";
+  document.body.appendChild(tip);
+  const r = anchor.getBoundingClientRect();
+  tip.style.left = (r.left + window.scrollX) + "px";
+  tip.style.top  = (r.top + window.scrollY - 38) + "px";
+  requestAnimationFrame(()=>{
+    tip.style.transition = "opacity .18s ease, transform .18s ease";
+    tip.style.opacity = "1";
+    tip.style.transform = "translateY(-12px)";
+  });
+  setTimeout(()=>{
+    tip.style.opacity = "0";
+    tip.style.transform = "translateY(-6px)";
+    setTimeout(()=> tip.remove(), 200);
+  }, 1500);
 }
 
 /* ---------- Seeds ---------- */
@@ -102,7 +134,6 @@ const seedTasks = [
   task("Dziennikarz/Kronikarz — dokumentuj dzień", "dziennikarz", {points:2}),
 ];
 
-/* seedNow: minimalny zestaw na dziś (bez serwera) */
 function seedNow(){
   const base = todayISO();
   return [
@@ -142,8 +173,6 @@ document.addEventListener("DOMContentLoaded", () => {
     riders: load(LS.RIDERS) || seedRiders,
     instructors: load(LS.INSTRUCTORS) || seedInstructors,
 
-    // UI: zawsze Admin na start i "dziś" w dashboardzie.
-    // Jeśli istnieje LS.UI, nadpisujemy tylko datę grafiku na dziś.
     ui: (() => {
       const today = todayISO();
       const ui = load(LS.UI);
@@ -151,10 +180,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return {
           ...ui,
           a: { ...(ui.a || {}), day: today },
-          // wymuś list-only
-          v: { ...(ui.v || {}), view: "list" },
-          i: { ...(ui.i || {}), view: "list" },
-          r: { ...(ui.r || {}), view: "list", from: ui.r?.from || today, to: ui.r?.to || today }
+          // wymuś list view i compact dla instruktora/raportów
+          v: { ...(ui.v||{}), view: "list" },
+          i: { ...(ui.i||{}), view: "list" },
+          r: { ...(ui.r||{}), view: "list", from: ui.r?.from || today, to: ui.r?.to || today }
         };
       }
       return {
@@ -167,7 +196,6 @@ document.addEventListener("DOMContentLoaded", () => {
     })()
   };
 
-  // enforce: codzienne zadania + Admin aktywny + zapisz UI
   ensureDailyTasksForToday();
   state.ui.tab = "admin";
   save(LS.UI, state.ui);
@@ -187,7 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAll();
   });
 
-  // Demo switch (vol)
+  // Demo switch
   const demoChk = $("#demoAutoApprove");
   if (demoChk){
     demoChk.checked = !!state.settings.demoAutoApprove;
@@ -195,12 +223,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* -------- INSTRUKTOR -------- */
-  $("#i-taskType")?.addEventListener("change", renderDynamicFields);
+  // wymuszamy listę; guziki kafelków/ listy mogą zostać w HTML, ale nie przełączają na kafelki
+  $("#i-view-cards")?.addEventListener("click", ()=>{ state.ui.i.view="list"; setViewActive("i","list"); renderInstructor(); });
+  $("#i-view-list")?.addEventListener("click", ()=>{ state.ui.i.view="list"; setViewActive("i","list"); renderInstructor(); });
+  $("#i-taskType").addEventListener("change", renderDynamicFields);
   renderDynamicFields();
-  $("#i-add")?.addEventListener("click", addInstructorTask);
-  $("#i-createDefaults")?.addEventListener("click", ()=>{
+  $("#i-add").addEventListener("click", addInstructorTask);
+  $("#i-createDefaults").addEventListener("click", ()=>{
     state.tasks = seedTasks.map(t=>({...t, id:uid(), ts:Date.now(), dateISO:todayISO()})).concat(state.tasks);
-    persistAll(); renderAll();
+    persistAll(); renderAll(); flash("#i-createDefaults","Dodano zestaw");
   });
 
   /* -------- WOLONTARIUSZ -------- */
@@ -219,29 +250,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* ---------- UI Binders ---------- */
 function bindVolunteerUI(){
-  $("#v-chipAll")?.addEventListener("click", ()=>{ state.ui.v.status="all"; setChipActive("v","all"); renderVolunteer(); });
-  $("#v-chipOpen")?.addEventListener("click", ()=>{ state.ui.v.status="open"; setChipActive("v","open"); renderVolunteer(); });
-  $("#v-chipTaken")?.addEventListener("click", ()=>{ state.ui.v.status="taken"; setChipActive("v","taken"); renderVolunteer(); });
-  $("#v-chipReview")?.addEventListener("click", ()=>{ state.ui.v.status="to_review"; setChipActive("v","review"); renderVolunteer(); });
-  $("#v-chipApproved")?.addEventListener("click", ()=>{ state.ui.v.status="approved"; setChipActive("v","approved"); renderVolunteer(); });
-  $("#v-chipMine")?.addEventListener("click", ()=>{ state.ui.v.onlyMine = !state.ui.v.onlyMine; $("#v-chipMine").classList.toggle("chip-active", state.ui.v.onlyMine); renderVolunteer(); });
-  $("#v-search")?.addEventListener("input", ()=>{ state.ui.v.search = $("#v-search").value; renderVolunteer(); });
-  $("#v-type")?.addEventListener("change", ()=>{ state.ui.v.type = $("#v-type").value; renderVolunteer(); });
+  $("#v-chipAll").addEventListener("click", ()=>{ state.ui.v.status="all"; setChipActive("v","all"); renderVolunteer(); });
+  $("#v-chipOpen").addEventListener("click", ()=>{ state.ui.v.status="open"; setChipActive("v","open"); renderVolunteer(); });
+  $("#v-chipTaken").addEventListener("click", ()=>{ state.ui.v.status="taken"; setChipActive("v","taken"); renderVolunteer(); });
+  $("#v-chipReview").addEventListener("click", ()=>{ state.ui.v.status="to_review"; setChipActive("v","review"); renderVolunteer(); });
+  $("#v-chipApproved").addEventListener("click", ()=>{ state.ui.v.status="approved"; setChipActive("v","approved"); renderVolunteer(); });
+  $("#v-chipMine").addEventListener("click", ()=>{ state.ui.v.onlyMine = !state.ui.v.onlyMine; $("#v-chipMine").classList.toggle("chip-active", state.ui.v.onlyMine); renderVolunteer(); });
+  $("#v-search").addEventListener("input", ()=>{ state.ui.v.search = $("#v-search").value; renderVolunteer(); });
+  $("#v-type").addEventListener("change", ()=>{ state.ui.v.type = $("#v-type").value; renderVolunteer(); });
+  $("#v-view-cards")?.addEventListener("click", ()=>{ state.ui.v.view="list"; setViewActive("v","list"); renderVolunteer(); });
+  $("#v-view-list")?.addEventListener("click", ()=>{ state.ui.v.view="list"; setViewActive("v","list"); renderVolunteer(); });
+  $("#pointsHistory").addEventListener("click", openPointsHistory);
+  $("#exportCsv").addEventListener("click", exportCSV);
+  $("#resetData").addEventListener("click", ()=>{ if(confirm("Zresetować do domyślnych?")){ resetAll(); }});
+  $("#hardReset").addEventListener("click", ()=>{ if(confirm("Twardy reset?")){ hardReset(); }});
 }
-
 function bindReportsUI(){
   $("#r-from").value = state.ui.r.from || todayISO();
   $("#r-to").value = state.ui.r.to || todayISO();
-  $("#r-group").value = state.ui.r.group || "none";
-  $("#r-status").value = state.ui.r.status || "";
-  $("#r-from")?.addEventListener("change", ()=>{ state.ui.r.from=$("#r-from").value; renderReports(); save(LS.UI,state.ui); });
-  $("#r-to")?.addEventListener("change", ()=>{ state.ui.r.to=$("#r-to").value; renderReports(); save(LS.UI,state.ui); });
-  $("#r-group")?.addEventListener("change", ()=>{ state.ui.r.group=$("#r-group").value; renderReports(); save(LS.UI,state.ui); });
-  $("#r-status")?.addEventListener("change", ()=>{ state.ui.r.status=$("#r-status").value; renderReports(); save(LS.UI,state.ui); });
+  $("#r-group").value = state.ui.r.group;
+  $("#r-status").value = state.ui.r.status;
+  $("#r-from").addEventListener("change", ()=>{ state.ui.r.from=$("#r-from").value; renderReports(); save(LS.UI,state.ui); });
+  $("#r-to").addEventListener("change", ()=>{ state.ui.r.to=$("#r-to").value; renderReports(); save(LS.UI,state.ui); });
+  $("#r-group").addEventListener("change", ()=>{ state.ui.r.group=$("#r-group").value; renderReports(); save(LS.UI,state.ui); });
+  $("#r-status").addEventListener("change", ()=>{ state.ui.r.status=$("#r-status").value; renderReports(); save(LS.UI,state.ui); });
+  $("#r-view-cards")?.addEventListener("click", ()=>{ state.ui.r.view="list"; setViewActive("r","list"); renderReports(); save(LS.UI,state.ui); });
+  $("#r-view-list")?.addEventListener("click", ()=>{ state.ui.r.view="list"; setViewActive("r","list"); renderReports(); save(LS.UI,state.ui); });
 }
 
 /* ---------- Views switch ---------- */
-function setViewActive(){ /* widok listy wymuszony w renderach */ }
+function setViewActive(prefix, which){
+  const map = { i:{cards:"#i-view-cards",list:"#i-view-list"}, v:{cards:"#v-view-cards",list:"#v-view-list"}, r:{cards:"#r-view-cards",list:"#r-view-list"} };
+  const m = map[prefix];
+  $(m.cards)?.classList.toggle("view-active", which==="cards");
+  $(m.list)?.classList.toggle("view-active", which==="list");
+}
 function switchTab(key){
   state.ui.tab = key;
   $$(".tab").forEach(b=>b.classList.toggle("tab-active", b.dataset.tab===key));
@@ -261,6 +304,7 @@ function renderDynamicFields(){
   c.innerHTML = "";
   const type = $("#i-taskType").value;
 
+  // safety
   if(!state.horses || !state.horses.length) state.horses = seedHorses.slice();
   if(!state.riders || !state.riders.length) state.riders = seedRiders.slice();
 
@@ -272,7 +316,10 @@ function renderDynamicFields(){
   const levelIndiv = inputSelect("Poziom (indywidualna)", "i-level-indiv", ["lonża", "kłus", "kłus-galop"]);
 
   if (type==="prep"){ append(c, date, time, horse, rider); }
-  else if (type==="zabieg"){ const proc = inputSelect("Typ zabiegu","i-proc",["Masaż","Derka magnetyczna","Kopyta — pielęgnacja","Kąpiel","Stretching"]); append(c, date, horse, proc); }
+  else if (type==="zabieg"){
+    const proc = inputSelect("Typ zabiegu","i-proc",["Masaż","Derka magnetyczna","Kopyta — pielęgnacja","Kąpiel","Stretching"]);
+    append(c, date, horse, proc);
+  }
   else if (type==="wyprowadzenie" || type==="sprowadzenie" || type==="rozsiodłanie"){ append(c, date, time); }
   else if (type==="jazda_grupowa"){ append(c, date, time, levelGroup, horse, rider); }
   else if (type==="jazda_indywidualna"){ append(c, date, time, levelIndiv, horse, rider); }
@@ -310,21 +357,33 @@ async function addInstructorTask(){
   } else if (tp==="jazda_grupowa"){
     if(!when || !groupLevel || !horse || !rider){ toastMsg("Jazda grupowa: data, godzina, poziom, koń, jeździec"); return; }
     t = task(title||`Jazda Grupowa — ${groupLevel}`, "jazda_grupowa", {arena, horse, rider, when, dateISO, points:0, groupLevel});
+    state.tasks.unshift(t);
+    persistAll();
     await createPrepPrompt(t);
   } else if (tp==="jazda_indywidualna"){
     if(!when || !indivLevel || !horse || !rider){ toastMsg("Jazda indywidualna: data, godzina, poziom, koń, jeździec"); return; }
     t = task(title||`Jazda Indywidualna — ${indivLevel}`, "jazda_indywidualna", {arena, horse, rider, when, dateISO, points:0, indivLevel});
+    state.tasks.unshift(t);
+    persistAll();
     await createPrepPrompt(t);
   } else { toastMsg("Nieobsługiwany typ"); return; }
 
-  state.tasks.unshift(t);
-  persistAll();
+  if (tp!=="jazda_grupowa" && tp!=="jazda_indywidualna"){
+    state.tasks.unshift(t);
+    persistAll();
+  }
+
   $("#i-title").value = ""; $("#i-place").value = ""; $("#i-points").value = 2; if($("#i-when")) $("#i-when").value = "";
-  renderAll(); toastMsg("Dodano zadanie");
+  renderAll();
+  flash("#i-add","Dodano zadanie");
 }
+
 function createPrepPrompt(rideTask){
   return new Promise(async (resolve)=>{
-    const ok = await confirmInApp(`Dodano ${typeLabel(rideTask.type)} (${isoToPL(rideTask.dateISO)} ${rideTask.when}).\nCzy zlecić osiodłanie konia wolontariuszowi?`, {title:"Zlecić Przygotowanie do Jazdy?", ok:"Zleć", cancel:"Pomiń"});
+    const ok = await confirmInApp(
+      `Dodano ${typeLabel(rideTask.type)} (${isoToPL(rideTask.dateISO)} ${rideTask.when}).\nCzy zlecić osiodłanie konia wolontariuszowi?`,
+      {title:"Zlecić Przygotowanie do Jazdy?", ok:"Zleć", cancel:"Pomiń"}
+    );
     if (ok){
       const prep = task(`Przygotowanie — ${rideTask.horse} dla ${rideTask.rider}`, "prep", {
         arena: rideTask.arena, horse: rideTask.horse, rider: rideTask.rider,
@@ -332,18 +391,22 @@ function createPrepPrompt(rideTask){
       });
       state.tasks.unshift(prep);
       persistAll();
-      toastMsg("Dodano zadanie: Przygotowanie do Jazdy");
+      flash("#i-add","Dodano: Przygotowanie");
     }
+    renderInstructor(); // natychmiast odśwież listę instruktora
     resolve(true);
   });
 }
 
 function renderInstructor(){
-  const items = state.tasks.filter(t => t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type));
-  const other = state.tasks.filter(t => !(t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type)));
   const list = $("#i-list");
   if(!list) return;
+
+  // tryb wyłącznie LISTA + compact
   list.className = "list";
+
+  const items = state.tasks.filter(t => t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type));
+  const other = state.tasks.filter(t => !(t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type)));
   list.innerHTML = items.concat(other).map(cardHTMLInstructor).join("");
 
   list.querySelectorAll(".openModal").forEach(b=>b.addEventListener("click", e=>{
@@ -380,7 +443,7 @@ function cardHTMLInstructor(t){
     ${t.status==="to_review" ? `<button class="btn small approve" data-id="${t.id}">Zatwierdź</button>
                                 <button class="btn small ghost reject" data-id="${t.id}">Odrzuć</button>` : ``}
     ${t.status==="open" ? assignVolunteerUI(t.id) : ``}
-    <button class="btn small ghost nudge" data-id="${t.id}">Przypomnij</button>
+    <button class="btn small ghost nudge" data-id="${t.id}" title="Wyślij przypomnienie">Przypomnij</button>
     <button class="btn small ghost delete" data-id="${t.id}">Usuń zadanie</button>
   `;
 
@@ -391,7 +454,7 @@ function cardHTMLInstructor(t){
     <div class="meta">${escapeHTML(meta)}</div>
     ${t.comments ? `<div class="meta">Uwagi: ${escapeHTML(t.comments)}</div>` : ""}
     <div class="kit">
-      <button class="btn openModal" data-id="${t.id}">Podgląd</button>
+      <button class="btn small openModal" data-id="${t.id}">Podgląd</button>
       ${actions}
     </div>
   </article>`;
@@ -404,7 +467,7 @@ function assignVolunteerUI(id){
       <option value="">— wybierz —</option>
       ${vols.map(v=>`<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join("")}
     </select>
-    <button class="btn assign" data-id="${id}">OK</button>
+    <button class="btn small assign" data-id="${id}">OK</button>
   `;
 }
 function uniqueRiderNames(){
@@ -489,15 +552,15 @@ function cardHTMLVolunteer(t){
     </div>
     <div class="meta">${escapeHTML(meta)}</div>
     <div class="kit">
-      <button class="btn more">Szczegóły</button>
+      <button class="btn small more">Szczegóły</button>
       ${quickButtonsVolunteer(t)}
     </div>
   </article>`;
 }
 function quickButtonsVolunteer(t){
   const me = (state.volunteer.name||"").trim();
-  if (t.status === "open") return `<button class="btn take" data-id="${t.id}">Weź</button>`;
-  if (t.assignedTo === me && t.status === "taken") return `<button class="btn done" data-id="${t.id}">Zgłoś Wykonanie</button>`;
+  if (t.status === "open") return `<button class="btn small take" data-id="${t.id}">Weź</button>`;
+  if (t.assignedTo === me && t.status === "taken") return `<button class="btn small done" data-id="${t.id}">Zgłoś Wykonanie</button>`;
   return `<span class="meta"></span>`;
 }
 function onOpenTask(e){ const id=e.currentTarget.closest(".card")?.dataset.id; const t=state.tasks.find(x=>x.id===id); if(t) openTaskModal(t); }
@@ -550,264 +613,79 @@ function renderReports(){
 
   list.className = "list";
   list.innerHTML = items.map(t=>`
-    <article class="card ${classByStatus(t.status)} ${isFutureISO(t.dateISO)?'future':''}">
-      <div class="title"><h3>${escapeHTML(t.title)}</h3></div>
-      <div class="badges">
-        <span class="badge-tag ${["jazda_grupowa","jazda_indywidualna"].includes(t.type)?'badge-ride':''} ${t.daily?'badge-daily':''}">
-          ${escapeHTML(typeLabel(t.type))}
-        </span>
-        ${statusBadgeHTML(t.status)}
-      </div>
-      <div class="meta">
-        ${escapeHTML([isoToPL(t.dateISO), t.when?`godz. ${t.when}`:"", t.horse?`koń: ${t.horse}`:"", t.rider?`jeździec: ${t.rider}`:""].filter(Boolean).join(" • "))}
-      </div>
-    </article>
-  `).join("");
-}
+    <article class="card ${class
+/* ---------- Dynamic Fields: wspólne dla Admin i Instruktor ---------- */
+function buildTaskFields(containerId, typePrefix){
+  const c = document.querySelector(containerId);
+  if(!c) return;
+  c.innerHTML = "";
 
-/* ---------- ADMIN ---------- */
-function initAdmin(){
-  // Instruktorzy
-  const aInstr = $("#a-instructor");
-  if (aInstr){
-    aInstr.innerHTML = state.instructors
-      .map(i=>`<option value="${i.id}">${escapeHTML(i.label)}</option>`).join("");
+  const type = document.querySelector(`#${typePrefix}-taskType`)?.value;
+
+  const date = inputDate("Data", `${typePrefix}-date`, todayISO());
+  const time = inputTime("Godzina", `${typePrefix}-when`);
+  const horse = inputSelect("Koń", `${typePrefix}-horse`, ["— koń —"].concat(state.horses.map(h=>h.name)));
+  const rider = inputSelect("Jeździec", `${typePrefix}-rider`, ["— jeździec —"].concat(uniqueRiderNames()));
+  const levelGroup = inputSelect("Poziom (grupa)", `${typePrefix}-level-group`, ["kłus","kłus-galop","obóz","teren"]);
+  const levelIndiv = inputSelect("Poziom (indywidualna)", `${typePrefix}-level-indiv`, ["lonża","kłus","kłus-galop"]);
+
+  if(type==="prep"){ append(c, date, time, horse, rider); }
+  else if(type==="zabieg"){ 
+    const proc = inputSelect("Typ zabiegu",`${typePrefix}-proc`,["Masaż","Derka magnetyczna","Kopyta — pielęgnacja","Kąpiel","Stretching"]);
+    append(c, date, horse, proc);
   }
+  else if(type==="wyprowadzenie" || type==="sprowadzenie" || type==="rozsiodłanie"){ append(c, date, time); }
+  else if(type==="jazda_grupowa"){ append(c, date, time, levelGroup, horse, rider); }
+  else if(type==="jazda_indywidualna"){ append(c, date, time, levelIndiv, horse, rider); }
+}
 
-  // Konie
-  const aHorse = $("#a-horse");
-  if (aHorse){
-    aHorse.innerHTML = state.horses
-      .map(h=>`<option value="${escapeHTML(h.name)}">${escapeHTML(h.name)}</option>`).join("");
+/* ---------- Toast UX (dymek info) ---------- */
+function showToast(msg){
+  let el = document.getElementById("toast");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "toast";
+    el.style.position = "fixed";
+    el.style.bottom = "20px";
+    el.style.left = "50%";
+    el.style.transform = "translateX(-50%)";
+    el.style.padding = "10px 20px";
+    el.style.background = "#333";
+    el.style.color = "#fff";
+    el.style.borderRadius = "8px";
+    el.style.opacity = "0";
+    el.style.transition = "opacity .3s";
+    document.body.appendChild(el);
   }
-
-  // Daty — ZAWSZE dziś jako domyślne w dashboardzie
-  const today = todayISO();
-  $("#a-day").value = state.ui.a.day || today;
-  if (!$("#a-date").value) $("#a-date").value = state.ui.a.day || today;
-
-  // Handlery
-  $("#a-addRider")?.addEventListener("click", adminAddRider);
-  $("#a-day")?.addEventListener("change", ()=>{
-    state.ui.a.day = $("#a-day").value || todayISO();
-    save(LS.UI, state.ui);
-    renderAdmin();
-  });
-  $("#a-refresh")?.addEventListener("click", ()=>{
-    state.ui.a.day = $("#a-day").value || todayISO();
-    save(LS.UI, state.ui);
-    renderAdmin();
-  });
-  $("#a-print")?.addEventListener("click", ()=>window.print());
+  el.textContent = msg;
+  el.style.opacity = "1";
+  setTimeout(()=> el.style.opacity="0", 1800);
 }
 
-function adminAddRider(){
-  const first = ($("#a-first")?.value || "").trim();
-  const last  = ($("#a-last")?.value  || "").trim();
-  const tel   = ($("#a-phone")?.value || "").trim();
-  const email = ($("#a-email")?.value || "").trim();
-  const rideType = $("#a-rideType")?.value || "jazda_grupowa";
-  const level    = $("#a-level")?.value || "kłus";
-  const horse    = ($("#a-horse")?.value || "").trim() || null;
-
-  // ZAWSZE dziś jako domyślna data jeśli nic nie wybrano
-  const dateISO  = ($("#a-date")?.value || state.ui.a.day || todayISO());
-  const when     = ($("#a-when")?.value || "").trim();
-  const instructorId = $("#a-instructor")?.value || (state.instructors[0]?.id || null);
-
-  // Walidacje
-  if(!first || !last){ toastMsg("Podaj imię i nazwisko jeźdźca"); return; }
-  if(!when){ toastMsg("Podaj godzinę jazdy"); return; }
-  if(!horse){ toastMsg("Wybierz konia z listy"); return; }
-  if(!instructorId){ toastMsg("Wybierz instruktora"); return; }
-
-  // Zapis jeźdźca (wraz z wybranym koniem i instruktorem)
-  const r = {
-    id: uid(),
-    first, last, tel, email,
-    rideType, level,
-    dateISO, when,
-    instructorId,
-    horse
-  };
-
-  state.riders.push(r);
-  save(LS.RIDERS, state.riders);
-
-  toastMsg("Zapisano na jazdę");
-
-  // Czyszczenie najczęstszych pól (koń/instruktor/godzina zostają — często dodaje się serię)
-  $("#a-first").value = "";
-  $("#a-last").value  = "";
-  $("#a-phone").value = "";
-  $("#a-email").value = "";
-
-  // Odśwież widok grafiku i selekty w Instruktorze
-  renderAdmin();
-  renderDynamicFields();
-}
-
-function renderAdmin(){
-  const dayISO = state.ui.a.day || todayISO();
-  $("#adminTodayLabel").textContent = `Planowanie — ${isoToPL(dayISO)} (${weekdayPL(dayISO)})`;
-
-  const ridersForDay = state.riders
-    .filter(r => r.dateISO === dayISO)
-    .sort((a,b)=> (a.when||"").localeCompare(b.when||""));
-
-  // unikalne godziny
-  const times = Array.from(new Set(ridersForDay.map(r=>r.when))).sort();
-
-  // instruktorzy
-  const instrs = state.instructors;
-
-  const grid = $("#scheduleGrid"); if(!grid) return;
-  grid.innerHTML = "";
-
-  // nagłówek: godzina + instruktorzy
-  const header = document.createElement("div");
-  header.className = "sched-row header";
-  header.innerHTML = `<div class="sched-time">Godzina</div>` +
-    instrs.map(i=>`<div class="sched-slot"><strong>${escapeHTML(i.label)}</strong></div>`).join("");
-  grid.appendChild(header);
-
-  // każda godzina = rząd
-  times.forEach(time=>{
-    const row = document.createElement("div");
-    row.className = "sched-row";
-
-    const timeEl = document.createElement("div");
-    timeEl.className = "sched-time";
-    timeEl.textContent = time;
-    row.appendChild(timeEl);
-
-    instrs.forEach(i=>{
-      const slot = document.createElement("div");
-      slot.className = "sched-slot";
-
-      const riders = ridersForDay.filter(r=>r.when===time && r.instructorId===i.id);
-      if(riders.length){
-        slot.innerHTML = riders.map(r=>`
-          <div class="rider">
-            ${escapeHTML(r.first)} ${escapeHTML(r.last)} (${escapeHTML(r.level)})<br>
-            koń: <strong>${escapeHTML(r.horse||"—")}</strong>
-          </div>
-        `).join("");
-      }
-
-      row.appendChild(slot);
-    });
-
-    grid.appendChild(row);
-  });
-
-  $("#schedTitle").textContent = "Grafik dnia";
-}
-
-
-/* ---------- Common UI bits ---------- */
-function statusBadgeHTML(st){
-  const map = {open:"badge-open",taken:"badge-taken",to_review:"badge-review",approved:"badge-approved",rejected:"badge-review"};
-  const txt = {open:"Wolne",taken:"W trakcie",to_review:"Do weryf.",approved:"Zatwierdzone",rejected:"Odrzucone"};
-  return `<span class="badge-tag ${map[st]||""}">${txt[st]||st}</span>`;
-}
-function classByStatus(st){ return st==="to_review" ? "to_review" : (st||"open"); }
-function typeLabel(t){
-  const map = {
-    "porządki":"Prace porządkowe",
-    "wyprowadzenie":"Wyprowadzenie Stada",
-    "sprowadzenie":"Sprowadzenie Stada",
-    "rozsiodłanie":"Rozsiodłanie",
-    "prep":"Przygotowanie do Jazdy",
-    "zabieg":"Zabieg",
-    "dziennikarz":"Dziennikarz/Kronikarz",
-    "luzak":"Luzak",
-    "jazda_grupowa":"Jazda Grupowa",
-    "jazda_indywidualna":"Jazda Indywidualna"
-  };
-  return map[t] || t;
-}
-function openTaskModal(t){
-  const modal = $("#modal"); if(!modal) return;
-  $("#modalTitle").textContent = t.title;
-  $("#modalBody").innerHTML = `
-    <p><strong>Typ:</strong> ${escapeHTML(typeLabel(t.type))}</p>
-    <p><strong>Data:</strong> ${escapeHTML(isoToPL(t.dateISO))} ${t.when?("godz. "+escapeHTML(t.when)):""}</p>
-    <p><strong>Koń:</strong> ${escapeHTML(t.horse||"—")}</p>
-    <p><strong>Jeździec:</strong> ${escapeHTML(t.rider||"—")}</p>
-    <p><strong>Arena:</strong> ${escapeHTML(t.arena||"—")}</p>
-    <p><strong>Status:</strong> ${escapeHTML(t.status)}</p>
-  `;
-  $("#modalFoot").innerHTML = `<button id="closeModal" class="iconbtn" aria-label="Zamknij">Zamknij</button>`;
-  modal.classList.remove("hidden");
-  $("#closeModal").addEventListener("click", ()=> modal.classList.add("hidden"));
-  modal.addEventListener("click", (e)=>{ if(e.target===modal) modal.classList.add("hidden"); });
-}
-function confirmInApp(message, opts={}){
-  const c = $("#confirm"); if(!c) return Promise.resolve(false);
-  $("#confirmBody").textContent = message;
-  $("#confirmTitle").textContent = opts.title || "Potwierdź";
-  const okBtn = $("#confirmOk");
-  const cancelBtn = $("#confirmCancel");
-  c.classList.remove("hidden");
-  return new Promise(res=>{
-    const done=(v)=>{ c.classList.add("hidden"); okBtn.onclick=null; cancelBtn.onclick=null; res(v); };
-    okBtn.textContent = opts.ok || "Tak";
-    cancelBtn.textContent = opts.cancel || "Nie";
-    okBtn.onclick = ()=> done(true);
-    cancelBtn.onclick = ()=> done(false);
-    c.addEventListener("click",(e)=>{ if(e.target===c) done(false); }, {once:true});
+/* ---------- FIX: Przygotowanie do Jazdy ---------- */
+async function createPrepPrompt(rideTask){
+  return new Promise(async (resolve)=>{
+    const ok = await confirmInApp(
+      `Dodano ${typeLabel(rideTask.type)} (${isoToPL(rideTask.dateISO)} ${rideTask.when}).\nCzy zlecić osiodłanie konia wolontariuszowi?`,
+      {title:"Zlecić Przygotowanie do Jazdy?", ok:"Zleć", cancel:"Pomiń"}
+    );
+    if(ok){
+      const prep = task(
+        `Przygotowanie — ${rideTask.horse} dla ${rideTask.rider}`,
+        "prep",
+        {
+          arena: rideTask.arena,
+          horse: rideTask.horse,
+          rider: rideTask.rider,
+          when: rideTask.when,
+          dateISO: rideTask.dateISO,
+          points:2
+        }
+      );
+      state.tasks.unshift(prep);
+      persistAll();
+      showToast("Dodano zadanie: Przygotowanie do Jazdy");
+    }
+    resolve(true);
   });
 }
-function persistAll(){
-  save(LS.USER, state.volunteer);
-  save(LS.TASKS, state.tasks);
-  save(LS.SETTINGS, state.settings);
-  save(LS.HORSES, state.horses);
-  save(LS.RIDERS, state.riders);
-  save(LS.INSTRUCTORS, state.instructors);
-  save(LS.UI, state.ui);
-}
-
-function setChipActive(prefix, key){
-  $$("#tab-volunteer .chip").forEach(el=>el.classList.remove("chip-active"));
-  $("#v-chip"+(key[0].toUpperCase()+key.slice(1)))?.classList.add("chip-active");
-}
-function setCounts(prefix, items){
-  if(prefix==="v"){
-    $("#v-countAll").textContent = String(items.length);
-    $("#v-countOpen").textContent = String(items.filter(t=>t.status==="open").length);
-    $("#v-countTaken").textContent = String(items.filter(t=>t.status==="taken").length);
-    $("#v-countReview").textContent = String(items.filter(t=>t.status==="to_review").length);
-    $("#v-countApproved").textContent = String(items.filter(t=>t.status==="approved").length);
-  }
-}
-
-function horseshoesHTML(n){
-  const total = 4;
-  const fill = Math.max(0, Math.min(total, n));
-  return Array.from({length:total}).map((_,i)=>`<span class="hs ${i<fill?'fill':''}"></span>`).join("");
-}
-
-/* CSV + resety (demo) */
-function exportCSV(){
-  const me = (state.volunteer.name||"").trim();
-  const mine = state.tasks.filter(t=>t.assignedTo===me);
-  const head = ["id","data","godzina","tytul","typ","kon","arena","status","punkty"];
-  const rows = mine.map(t=>[
-    t.id, t.dateISO, t.when||"", t.title, t.type, t.horse||"", t.arena||"", t.status, t.points
-  ].map(csvEscape).join(","));
-  download(`equiflow_${me||"vol"}_${todayISO()}.csv`, [head.join(","), ...rows].join("\n"), "text/csv");
-}
-function resetAll(){
-  localStorage.removeItem(LS.TASKS);
-  state.tasks = seedNow();
-  persistAll(); renderAll();
-  toastMsg("Zresetowano dane do domyślnych");
-}
-function hardReset(){
-  Object.values(LS).forEach(k=>localStorage.removeItem(k));
-  location.reload();
-}
-
-/* ---------- END ---------- */
