@@ -616,6 +616,7 @@ function adminAddRider(){
   const email = ($("#a-email")?.value || "").trim();
   const rideType = $("#a-rideType")?.value || "jazda_grupowa";
   const level    = $("#a-level")?.value || "kłus";
+  const horse    = $("#a-horse")?.value || null;
   const dateISO  = ($("#a-date")?.value || state.ui.a.day || todayISO());
   const when     = ($("#a-when")?.value || "");
   const instructorId = $("#a-instructor")?.value || (state.instructors[0]?.id || null);
@@ -623,10 +624,10 @@ function adminAddRider(){
   if(!first || !last){ toastMsg("Podaj imię i nazwisko jeźdźca"); return; }
   if(!when){ toastMsg("Podaj godzinę jazdy"); return; }
 
-  const r = {
-    id: uid(), first, last, tel, email, level,
-    dateISO, when, instructorId, horse: null
-  };
+const r = {
+  id: uid(), first, last, tel, email, level,
+  dateISO, when, instructorId, horse
+};
   state.riders.push(r);
   save(LS.RIDERS, state.riders);
 
