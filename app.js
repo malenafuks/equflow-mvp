@@ -340,7 +340,7 @@ function renderInstructor(){
   const other = state.tasks.filter(t => !(t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type)));
   const list = $("#i-list");
   if(!list) return;
-  list.className = state.ui.i.view==="list" ? "list" : "grid";
+  list.className = "list";
   list.innerHTML = items.concat(other).map(cardHTMLInstructor).join("");
 
   list.querySelectorAll(".openModal").forEach(b=>b.addEventListener("click", e=>{
@@ -374,12 +374,12 @@ function cardHTMLInstructor(t){
   ].join("");
 
   const actions = `
-    ${t.status==="to_review" ? `<button class="btn approve" data-id="${t.id}">Zatwierdź</button>
-                                <button class="btn ghost reject" data-id="${t.id}">Odrzuć</button>` : ``}
-    ${t.status==="open" ? assignVolunteerUI(t.id) : ``}
-    <button class="btn ghost nudge" data-id="${t.id}">Szturchnij</button>
-    <button class="btn ghost delete" data-id="${t.id}">Usuń</button>
-  `;
+  ${t.status==="to_review" ? `<button class="btn small approve" data-id="${t.id}">Zatwierdź</button>
+                              <button class="btn small ghost reject" data-id="${t.id}">Odrzuć</button>` : ``}
+  ${t.status==="open" ? assignVolunteerUI(t.id) : ``}
+  <button class="btn small ghost nudge" data-id="${t.id}">Przypomnij</button>
+  <button class="btn small ghost delete" data-id="${t.id}">Usuń zadanie</button>
+`;
 
   return `
   <article class="card ${classByStatus(t.status)} ${ride?'ride':''} ${future?'future':''}" data-id="${t.id}">
@@ -546,7 +546,7 @@ function renderReports(){
 
   setCounts("r", items);
 
-  list.className = state.ui.r.view==="list" ? "list" : "grid";
+  list.className = "list";
   list.innerHTML = items.map(t=>`
     <article class="card ${classByStatus(t.status)} ${isFutureISO(t.dateISO)?'future':''}">
       <div class="title"><h3>${escapeHTML(t.title)}</h3></div>
