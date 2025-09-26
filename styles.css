@@ -147,3 +147,13 @@ button,input,select{font:inherit;color:inherit}
   .card{box-shadow:none;border-color:#000}
   .sched-slot{border-color:#000}
 }
+/* === Modale (ukrycie + karta) === */
+.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(17,24,39,.4);z-index:1000}
+.modal.hidden{display:none}
+.modal__card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:var(--shadow);max-width:560px;width:100%}
+.modal__head,.modal__foot{padding:12px 14px;border-bottom:1px solid #e5e7eb}
+.modal__foot{border-top:1px solid #e5e7eb;border-bottom:none}
+.modal__body{padding:14px}
+
+/* Tylko widok listy – ukryj przełączniki */
+.viewtog{display:none !important}
