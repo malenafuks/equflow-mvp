@@ -136,21 +136,39 @@ function ensureDailyTasksForToday(){
 let state;
 
 document.addEventListener("DOMContentLoaded", () => {
-  state = {
-    volunteer: load(LS.USER) || { name: "" },
-    tasks: load(LS.TASKS) || seedNow(),
-    settings: load(LS.SETTINGS) || { demoAutoApprove: false },
-    horses: load(LS.HORSES) || seedHorses,
-    riders: load(LS.RIDERS) || seedRiders,
-    instructors: load(LS.INSTRUCTORS) || seedInstructors,
-    ui: load(LS.UI) || {
-      tab: "admin", // start od Admin
-      v: { status:"all", onlyMine:false, type:"", view:"cards", search:"" },
-      i: { view:"cards" },
-      r: { view:"cards", from: todayISO(), to: todayISO(), group:"none", status:"" },
-      a: { day: todayISO() }
+state = {
+  volunteer: load(LS.USER) || { name: "" },
+  tasks: load(LS.TASKS) || seedNow(),
+  settings: load(LS.SETTINGS) || { demoAutoApprove: false },
+  horses: load(LS.HORSES) || seedHorses,
+  riders: load(LS.RIDERS) || seedRiders,
+  instructors: load(LS.INSTRUCTORS) || seedInstructors,
+
+  // UI: zawsze Admin na start i "dziś" w dashboardzie.
+  // Gdy istnieje LS.UI, nadpisujemy tylko datę grafiku na dziś.
+  ui: (() => {
+    const today = todayISO();
+    const ui = load(LS.UI);
+    if (ui) {
+      return {
+        ...ui,
+        a: { ...(ui.a || {}), day: today }
+      };
     }
-  };
+    return {
+      tab: "admin",
+      v: { status:"all", onlyMine:false, type:"", view:"list", search:"" },
+      i: { view:"list" },
+      r: { view:"list", from: today, to: today, group:"none", status:"" },
+      a: { day: today }
+    };
+  })()
+};
+// enforce: codzienne zadania + Admin aktywny + zapisz UI
+ensureDailyTasksForToday();
+state.ui.tab = "admin";
+save(LS.UI, state.ui);
+
 
   // wymuś Admin na starcie i codzienne zadania
   ensureDailyTasksForToday();
