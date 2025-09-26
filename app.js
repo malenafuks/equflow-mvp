@@ -47,9 +47,9 @@ const seedInstructors = [
   {first:"Katarzyna", gender:"F"},
   {first:"Ewa", gender:"F"},
   {first:"Piotr", gender:"M"},
-  {first:"Marek", gender:"M"},
-  {first:"Tomasz", gender:"M"},
-].map(p=>({...p, id:uid(), label: (p.gender==="F"?"pani ":"pan ") + p.first}));
+  {first:"Marek", gender:"M"}
+].map(p=>({...p, id:uid(), label:(p.gender==="F"?"pani ":"pan ")+p.first}));
+
 
 const levels = ["kłus","kłus-galop","obóz","teren","lonża"];
 function addDays(iso,days){ const d=new Date(iso); d.setDate(d.getDate()+days); const z=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
@@ -565,35 +565,39 @@ function renderReports(){
 
 /* ---------- ADMIN ---------- */
 function initAdmin(){
+  // Instruktorzy
   const aInstr = $("#a-instructor");
   if (aInstr){
     aInstr.innerHTML = state.instructors
       .map(i=>`<option value="${i.id}">${escapeHTML(i.label)}</option>`).join("");
   }
+
+  // Konie
   const aHorse = $("#a-horse");
   if (aHorse){
     aHorse.innerHTML = state.horses
       .map(h=>`<option value="${escapeHTML(h.name)}">${escapeHTML(h.name)}</option>`).join("");
   }
+
+  // Daty — ZAWSZE dziś jako domyślne w dashboardzie
+  const today = todayISO();
+  $("#a-day").value = state.ui.a.day || today;
+  if (!$("#a-date").value) $("#a-date").value = state.ui.a.day || today;
+
+  // Handlery
   $("#a-addRider")?.addEventListener("click", adminAddRider);
-
-  $("#a-day").value = state.ui.a.day;
-  const aDate = $("#a-date");
-  if (aDate && !aDate.value) aDate.value = state.ui.a.day || todayISO();
-
   $("#a-day").addEventListener("change", ()=>{
     state.ui.a.day = $("#a-day").value || todayISO();
     save(LS.UI, state.ui);
     renderAdmin();
   });
-
   $("#a-refresh")?.addEventListener("click", ()=>{
     state.ui.a.day = $("#a-day").value || todayISO();
     save(LS.UI, state.ui);
     renderAdmin();
   });
-
   $("#a-print").addEventListener("click", ()=>window.print());
+}
 
   $("#a-addHorse")?.addEventListener("click", ()=>{
     const name = ($("#a-horseName")?.value || "").trim();
@@ -616,29 +620,44 @@ function adminAddRider(){
   const email = ($("#a-email")?.value || "").trim();
   const rideType = $("#a-rideType")?.value || "jazda_grupowa";
   const level    = $("#a-level")?.value || "kłus";
-  const horse    = $("#a-horse")?.value || null;
+  const horse    = ($("#a-horse")?.value || "").trim() || null;
+
+  // ZAWSZE dziś jako domyślna data jeśli nic nie wybrano
   const dateISO  = ($("#a-date")?.value || state.ui.a.day || todayISO());
-  const when     = ($("#a-when")?.value || "");
+  const when     = ($("#a-when")?.value || "").trim();
   const instructorId = $("#a-instructor")?.value || (state.instructors[0]?.id || null);
 
+  // Walidacje
   if(!first || !last){ toastMsg("Podaj imię i nazwisko jeźdźca"); return; }
   if(!when){ toastMsg("Podaj godzinę jazdy"); return; }
+  if(!horse){ toastMsg("Wybierz konia z listy"); return; }
+  if(!instructorId){ toastMsg("Wybierz instruktora"); return; }
 
-const r = {
-  id: uid(), first, last, tel, email, level,
-  dateISO, when, instructorId, horse
-};
+  // Zapis jeźdźca (wraz z wybranym koniem i instruktorem)
+  const r = {
+    id: uid(),
+    first, last, tel, email,
+    rideType, level,
+    dateISO, when,
+    instructorId,
+    horse
+  };
+
   state.riders.push(r);
   save(LS.RIDERS, state.riders);
 
   toastMsg("Zapisano na jazdę");
-  $("#a-first").value=""; $("#a-last").value="";
-  $("#a-phone").value=""; $("#a-email").value="";
 
+  // Czyszczenie najczęstszych pól (koń/instruktor/godzina zostają — często dodaje się serię)
+  $("#a-first").value = "";
+  $("#a-last").value  = "";
+  $("#a-phone").value = "";
+  $("#a-email").value = "";
+
+  // Odśwież widok grafiku i selekty w Instruktorze
   renderAdmin();
   renderDynamicFields();
 }
-
 function renderAdmin(){
   // etykieta dnia
   const dayISO = state.ui.a.day || todayISO();
