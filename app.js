@@ -672,30 +672,3 @@ function showToast(msg){
   setTimeout(()=> el.style.opacity="0", 1800);
 }
 
-/* ---------- FIX: Przygotowanie do Jazdy ---------- */
-async function createPrepPrompt(rideTask){
-  return new Promise(async (resolve)=>{
-    const ok = await confirmInApp(
-      `Dodano ${typeLabel(rideTask.type)} (${isoToPL(rideTask.dateISO)} ${rideTask.when}).\nCzy zlecić osiodłanie konia wolontariuszowi?`,
-      {title:"Zlecić Przygotowanie do Jazdy?", ok:"Zleć", cancel:"Pomiń"}
-    );
-    if(ok){
-      const prep = task(
-        `Przygotowanie — ${rideTask.horse} dla ${rideTask.rider}`,
-        "prep",
-        {
-          arena: rideTask.arena,
-          horse: rideTask.horse,
-          rider: rideTask.rider,
-          when: rideTask.when,
-          dateISO: rideTask.dateISO,
-          points:2
-        }
-      );
-      state.tasks.unshift(prep);
-      persistAll();
-      showToast("Dodano zadanie: Przygotowanie do Jazdy");
-    }
-    resolve(true);
-  });
-}
