@@ -613,7 +613,17 @@ function renderReports(){
 
   list.className = "list";
   list.innerHTML = items.map(t=>`
-    <article class="card ${class
+  <article class="card ${classByStatus(t.status)}">
+    <div class="title"><h3>${escapeHTML(t.title)}</h3></div>
+    <div class="badges">
+      <span class="badge-tag">${escapeHTML(typeLabel(t.type))}</span>
+      ${statusBadgeHTML(t.status)}
+    </div>
+    <div class="meta">${escapeHTML(isoToPL(t.dateISO))} ${t.when?("• "+t.when):""}</div>
+  </article>
+`).join("");
+}
+
 /* ---------- Dynamic Fields: wspólne dla Admin i Instruktor ---------- */
 function buildTaskFields(containerId, typePrefix){
   const c = document.querySelector(containerId);
