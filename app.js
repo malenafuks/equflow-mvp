@@ -648,26 +648,31 @@ function adminAddRider(){
 }
 
 function renderAdmin(){
-  // etykieta dnia
   const dayISO = state.ui.a.day || todayISO();
-  const label = `Planowanie — ${isoToPL(dayISO)} (${weekdayPL(dayISO)})`;
-  $("#adminTodayLabel").textContent = label;
+  $("#adminTodayLabel").textContent = `Planowanie — ${isoToPL(dayISO)} (${weekdayPL(dayISO)})`;
 
-  // grupujemy zapisy (riders) po godzinach
   const ridersForDay = state.riders
     .filter(r => r.dateISO === dayISO)
     .sort((a,b)=> (a.when||"").localeCompare(b.when||""));
 
-  const byTime = new Map();
-  ridersForDay.forEach(r=>{
-    if(!byTime.has(r.when)) byTime.set(r.when, []);
-    byTime.get(r.when).push(r);
-  });
+  // unikalne godziny
+  const times = Array.from(new Set(ridersForDay.map(r=>r.when))).sort();
+
+  // instruktorzy
+  const instrs = state.instructors;
 
   const grid = $("#scheduleGrid"); if(!grid) return;
   grid.innerHTML = "";
-  [...byTime.keys()].sort().forEach(time=>{
-    const items = byTime.get(time);
+
+  // nagłówek: godzina + instruktorzy
+  const header = document.createElement("div");
+  header.className = "sched-row header";
+  header.innerHTML = `<div class="sched-time">Godzina</div>` +
+    instrs.map(i=>`<div class="sched-slot"><strong>${escapeHTML(i.label)}</strong></div>`).join("");
+  grid.appendChild(header);
+
+  // każda godzina = rząd
+  times.forEach(time=>{
     const row = document.createElement("div");
     row.className = "sched-row";
 
@@ -676,15 +681,20 @@ function renderAdmin(){
     timeEl.textContent = time;
     row.appendChild(timeEl);
 
-    items.forEach(r=>{
-      const instr = state.instructors.find(i=>i.id===r.instructorId);
+    instrs.forEach(i=>{
       const slot = document.createElement("div");
       slot.className = "sched-slot";
-      slot.innerHTML = `
-        <h4>${escapeHTML(r.first)} ${escapeHTML(r.last)} <small>(${escapeHTML(r.level)})</small></h4>
-        <div class="line">Instruktor: <strong>${escapeHTML(instr?instr.label:"—")}</strong></div>
-        <div class="line">Koń: <strong>${escapeHTML(r.horse||"—")}</strong></div>
-      `;
+
+      const riders = ridersForDay.filter(r=>r.when===time && r.instructorId===i.id);
+      if(riders.length){
+        slot.innerHTML = riders.map(r=>`
+          <div class="rider">
+            ${escapeHTML(r.first)} ${escapeHTML(r.last)} (${escapeHTML(r.level)})<br>
+            koń: <strong>${escapeHTML(r.horse||"—")}</strong>
+          </div>
+        `).join("");
+      }
+
       row.appendChild(slot);
     });
 
@@ -693,6 +703,7 @@ function renderAdmin(){
 
   $("#schedTitle").textContent = "Grafik dnia";
 }
+
 
 /* ---------- Common UI bits ---------- */
 function statusBadgeHTML(st){
