@@ -1,4 +1,4 @@
-/* EquiFlow v1.4 — FIXED FULL APP.JS (Admin first, compact UI, daily tasks auto, add rider/horse, instructor filters) */
+/* EquiFlow v1.4 — FIXED FULL APP.JS (Admin first, compact UI, daily tasks auto, add rider, list-only views) */
 
 const LS = {
   TASKS: "equiflow_tasks_v1",
@@ -49,7 +49,6 @@ const seedInstructors = [
   {first:"Piotr", gender:"M"},
   {first:"Marek", gender:"M"}
 ].map(p=>({...p, id:uid(), label:(p.gender==="F"?"pani ":"pan ")+p.first}));
-
 
 const levels = ["kłus","kłus-galop","obóz","teren","lonża"];
 function addDays(iso,days){ const d=new Date(iso); d.setDate(d.getDate()+days); const z=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
@@ -103,9 +102,8 @@ const seedTasks = [
   task("Dziennikarz/Kronikarz — dokumentuj dzień", "dziennikarz", {points:2}),
 ];
 
-/* brakująca funkcja z Twojego pliku */
+/* seedNow: minimalny zestaw na dziś (bez serwera) */
 function seedNow(){
-  // dziś podstawowy zestaw zadań codziennych
   const base = todayISO();
   return [
     task("Prace porządkowe — stajnia", "porządki", {points:2, daily:true, dateISO:base}),
@@ -136,41 +134,43 @@ function ensureDailyTasksForToday(){
 let state;
 
 document.addEventListener("DOMContentLoaded", () => {
-state = {
-  volunteer: load(LS.USER) || { name: "" },
-  tasks: load(LS.TASKS) || seedNow(),
-  settings: load(LS.SETTINGS) || { demoAutoApprove: false },
-  horses: load(LS.HORSES) || seedHorses,
-  riders: load(LS.RIDERS) || seedRiders,
-  instructors: load(LS.INSTRUCTORS) || seedInstructors,
+  state = {
+    volunteer: load(LS.USER) || { name: "" },
+    tasks: load(LS.TASKS) || seedNow(),
+    settings: load(LS.SETTINGS) || { demoAutoApprove: false },
+    horses: load(LS.HORSES) || seedHorses,
+    riders: load(LS.RIDERS) || seedRiders,
+    instructors: load(LS.INSTRUCTORS) || seedInstructors,
 
-  // UI: zawsze Admin na start i "dziś" w dashboardzie.
-  // Gdy istnieje LS.UI, nadpisujemy tylko datę grafiku na dziś.
-  ui: (() => {
-    const today = todayISO();
-    const ui = load(LS.UI);
-    if (ui) {
+    // UI: zawsze Admin na start i "dziś" w dashboardzie.
+    // Jeśli istnieje LS.UI, nadpisujemy tylko datę grafiku na dziś.
+    ui: (() => {
+      const today = todayISO();
+      const ui = load(LS.UI);
+      if (ui) {
+        return {
+          ...ui,
+          a: { ...(ui.a || {}), day: today },
+          // wymuś list-only
+          v: { ...(ui.v || {}), view: "list" },
+          i: { ...(ui.i || {}), view: "list" },
+          r: { ...(ui.r || {}), view: "list", from: ui.r?.from || today, to: ui.r?.to || today }
+        };
+      }
       return {
-        ...ui,
-        a: { ...(ui.a || {}), day: today }
+        tab: "admin",
+        v: { status:"all", onlyMine:false, type:"", view:"list", search:"" },
+        i: { view:"list" },
+        r: { view:"list", from: today, to: today, group:"none", status:"" },
+        a: { day: today }
       };
-    }
-    return {
-      tab: "admin",
-      v: { status:"all", onlyMine:false, type:"", view:"list", search:"" },
-      i: { view:"list" },
-      r: { view:"list", from: today, to: today, group:"none", status:"" },
-      a: { day: today }
-    };
-  })()
-};
-// enforce: codzienne zadania + Admin aktywny + zapisz UI
-ensureDailyTasksForToday();
-state.ui.tab = "admin";
-save(LS.UI, state.ui);
+    })()
+  };
 
-
-  // wymuś Admin na starcie i codzienne zadania
+  // enforce: codzienne zadania + Admin aktywny + zapisz UI
+  ensureDailyTasksForToday();
+  state.ui.tab = "admin";
+  save(LS.UI, state.ui);
 
   // Tabs
   $("#tabsNav").addEventListener("click",(e)=>{
@@ -195,12 +195,10 @@ save(LS.UI, state.ui);
   }
 
   /* -------- INSTRUKTOR -------- */
-  $("#i-view-cards").addEventListener("click", ()=>{ state.ui.i.view="cards"; setViewActive("i","cards"); renderInstructor(); });
-  $("#i-view-list").addEventListener("click", ()=>{ state.ui.i.view="list"; setViewActive("i","list"); renderInstructor(); });
-  $("#i-taskType").addEventListener("change", renderDynamicFields);
+  $("#i-taskType")?.addEventListener("change", renderDynamicFields);
   renderDynamicFields();
-  $("#i-add").addEventListener("click", addInstructorTask);
-  $("#i-createDefaults").addEventListener("click", ()=>{
+  $("#i-add")?.addEventListener("click", addInstructorTask);
+  $("#i-createDefaults")?.addEventListener("click", ()=>{
     state.tasks = seedTasks.map(t=>({...t, id:uid(), ts:Date.now(), dateISO:todayISO()})).concat(state.tasks);
     persistAll(); renderAll();
   });
@@ -221,39 +219,29 @@ save(LS.UI, state.ui);
 
 /* ---------- UI Binders ---------- */
 function bindVolunteerUI(){
-  $("#v-chipAll").addEventListener("click", ()=>{ state.ui.v.status="all"; setChipActive("v","all"); renderVolunteer(); });
-  $("#v-chipOpen").addEventListener("click", ()=>{ state.ui.v.status="open"; setChipActive("v","open"); renderVolunteer(); });
-  $("#v-chipTaken").addEventListener("click", ()=>{ state.ui.v.status="taken"; setChipActive("v","taken"); renderVolunteer(); });
-  $("#v-chipReview").addEventListener("click", ()=>{ state.ui.v.status="to_review"; setChipActive("v","review"); renderVolunteer(); });
-  $("#v-chipApproved").addEventListener("click", ()=>{ state.ui.v.status="approved"; setChipActive("v","approved"); renderVolunteer(); });
-  $("#v-chipMine").addEventListener("click", ()=>{ state.ui.v.onlyMine = !state.ui.v.onlyMine; $("#v-chipMine").classList.toggle("chip-active", state.ui.v.onlyMine); renderVolunteer(); });
-  $("#v-search").addEventListener("input", ()=>{ state.ui.v.search = $("#v-search").value; renderVolunteer(); });
-  $("#v-type").addEventListener("change", ()=>{ state.ui.v.type = $("#v-type").value; renderVolunteer(); });
-  $("#v-view-cards").addEventListener("click", ()=>{ state.ui.v.view="cards"; setViewActive("v","cards"); renderVolunteer(); });
-  $("#v-view-list").addEventListener("click", ()=>{ state.ui.v.view="list"; setViewActive("v","list"); renderVolunteer(); });
-  $("#pointsHistory").addEventListener("click", openPointsHistory);
-  $("#exportCsv").addEventListener("click", exportCSV);
-  $("#resetData").addEventListener("click", ()=>{ if(confirm("Zresetować do domyślnych?")){ resetAll(); }});
-  $("#hardReset").addEventListener("click", ()=>{ if(confirm("Twardy reset?")){ hardReset(); }});
+  $("#v-chipAll")?.addEventListener("click", ()=>{ state.ui.v.status="all"; setChipActive("v","all"); renderVolunteer(); });
+  $("#v-chipOpen")?.addEventListener("click", ()=>{ state.ui.v.status="open"; setChipActive("v","open"); renderVolunteer(); });
+  $("#v-chipTaken")?.addEventListener("click", ()=>{ state.ui.v.status="taken"; setChipActive("v","taken"); renderVolunteer(); });
+  $("#v-chipReview")?.addEventListener("click", ()=>{ state.ui.v.status="to_review"; setChipActive("v","review"); renderVolunteer(); });
+  $("#v-chipApproved")?.addEventListener("click", ()=>{ state.ui.v.status="approved"; setChipActive("v","approved"); renderVolunteer(); });
+  $("#v-chipMine")?.addEventListener("click", ()=>{ state.ui.v.onlyMine = !state.ui.v.onlyMine; $("#v-chipMine").classList.toggle("chip-active", state.ui.v.onlyMine); renderVolunteer(); });
+  $("#v-search")?.addEventListener("input", ()=>{ state.ui.v.search = $("#v-search").value; renderVolunteer(); });
+  $("#v-type")?.addEventListener("change", ()=>{ state.ui.v.type = $("#v-type").value; renderVolunteer(); });
 }
+
 function bindReportsUI(){
   $("#r-from").value = state.ui.r.from || todayISO();
   $("#r-to").value = state.ui.r.to || todayISO();
-  $("#r-group").value = state.ui.r.group;
-  $("#r-status").value = state.ui.r.status;
-  $("#r-from").addEventListener("change", ()=>{ state.ui.r.from=$("#r-from").value; renderReports(); save(LS.UI,state.ui); });
-  $("#r-to").addEventListener("change", ()=>{ state.ui.r.to=$("#r-to").value; renderReports(); save(LS.UI,state.ui); });
-  $("#r-group").addEventListener("change", ()=>{ state.ui.r.group=$("#r-group").value; renderReports(); save(LS.UI,state.ui); });
-  $("#r-status").addEventListener("change", ()=>{ state.ui.r.status=$("#r-status").value; renderReports(); save(LS.UI,state.ui); });
-  $("#r-view-cards").addEventListener("click", ()=>{ state.ui.r.view="cards"; setViewActive("r","cards"); renderReports(); save(LS.UI,state.ui); });
-  $("#r-view-list").addEventListener("click", ()=>{ state.ui.r.view="list"; setViewActive("r","list"); renderReports(); save(LS.UI,state.ui); });
+  $("#r-group").value = state.ui.r.group || "none";
+  $("#r-status").value = state.ui.r.status || "";
+  $("#r-from")?.addEventListener("change", ()=>{ state.ui.r.from=$("#r-from").value; renderReports(); save(LS.UI,state.ui); });
+  $("#r-to")?.addEventListener("change", ()=>{ state.ui.r.to=$("#r-to").value; renderReports(); save(LS.UI,state.ui); });
+  $("#r-group")?.addEventListener("change", ()=>{ state.ui.r.group=$("#r-group").value; renderReports(); save(LS.UI,state.ui); });
+  $("#r-status")?.addEventListener("change", ()=>{ state.ui.r.status=$("#r-status").value; renderReports(); save(LS.UI,state.ui); });
 }
 
 /* ---------- Views switch ---------- */
-function setViewActive(prefix, which){
-  const map = { i:{cards:"#i-view-cards",list:"#i-view-list"}, v:{cards:"#v-view-cards",list:"#v-view-list"}, r:{cards:"#r-view-cards",list:"#r-view-list"} };
-  const m = map[prefix]; $(m.cards).classList.toggle("view-active", which==="cards"); $(m.list).classList.toggle("view-active", which==="list");
-}
+function setViewActive(){ /* widok listy wymuszony w renderach */ }
 function switchTab(key){
   state.ui.tab = key;
   $$(".tab").forEach(b=>b.classList.toggle("tab-active", b.dataset.tab===key));
@@ -273,7 +261,6 @@ function renderDynamicFields(){
   c.innerHTML = "";
   const type = $("#i-taskType").value;
 
-  // safety (gdy LS pusty)
   if(!state.horses || !state.horses.length) state.horses = seedHorses.slice();
   if(!state.riders || !state.riders.length) state.riders = seedRiders.slice();
 
@@ -390,12 +377,12 @@ function cardHTMLInstructor(t){
   ].join("");
 
   const actions = `
-  ${t.status==="to_review" ? `<button class="btn small approve" data-id="${t.id}">Zatwierdź</button>
-                              <button class="btn small ghost reject" data-id="${t.id}">Odrzuć</button>` : ``}
-  ${t.status==="open" ? assignVolunteerUI(t.id) : ``}
-  <button class="btn small ghost nudge" data-id="${t.id}">Przypomnij</button>
-  <button class="btn small ghost delete" data-id="${t.id}">Usuń zadanie</button>
-`;
+    ${t.status==="to_review" ? `<button class="btn small approve" data-id="${t.id}">Zatwierdź</button>
+                                <button class="btn small ghost reject" data-id="${t.id}">Odrzuć</button>` : ``}
+    ${t.status==="open" ? assignVolunteerUI(t.id) : ``}
+    <button class="btn small ghost nudge" data-id="${t.id}">Przypomnij</button>
+    <button class="btn small ghost delete" data-id="${t.id}">Usuń zadanie</button>
+  `;
 
   return `
   <article class="card ${classByStatus(t.status)} ${ride?'ride':''} ${future?'future':''}" data-id="${t.id}">
@@ -477,7 +464,7 @@ function renderVolunteer(){
 
   const list = $("#v-list");
   if(!list) return;
-  list.className = state.ui.v.view==="list" ? "list" : "grid";
+  list.className = "list";
   list.innerHTML = items.map(cardHTMLVolunteer).join("");
   list.querySelectorAll(".more").forEach(b=>b.addEventListener("click", onOpenTask));
   list.querySelectorAll(".take").forEach(b=>b.addEventListener("click", onQuickTake));
@@ -531,7 +518,6 @@ function takeTask(t){
 
   renderAll();
 }
-
 function markDone(t){
   if(t.status!=="taken"){ alert("To zadanie nie jest w trakcie."); return; }
   t.status = "to_review";
@@ -602,7 +588,7 @@ function initAdmin(){
 
   // Handlery
   $("#a-addRider")?.addEventListener("click", adminAddRider);
-  $("#a-day").addEventListener("change", ()=>{
+  $("#a-day")?.addEventListener("change", ()=>{
     state.ui.a.day = $("#a-day").value || todayISO();
     save(LS.UI, state.ui);
     renderAdmin();
@@ -612,7 +598,7 @@ function initAdmin(){
     save(LS.UI, state.ui);
     renderAdmin();
   });
-  $("#a-print").addEventListener("click", ()=>window.print());
+  $("#a-print")?.addEventListener("click", ()=>window.print());
 }
 
 function adminAddRider(){
@@ -660,6 +646,7 @@ function adminAddRider(){
   renderAdmin();
   renderDynamicFields();
 }
+
 function renderAdmin(){
   // etykieta dnia
   const dayISO = state.ui.a.day || todayISO();
@@ -772,8 +759,6 @@ function persistAll(){
 }
 
 function setChipActive(prefix, key){
-  const ids = { v:["All","Open","Taken","Review","Approved"], r:["view-cards","view-list"] };
-  // tylko dla wolontariusza używamy chips
   $$("#tab-volunteer .chip").forEach(el=>el.classList.remove("chip-active"));
   $("#v-chip"+(key[0].toUpperCase()+key.slice(1)))?.classList.add("chip-active");
 }
