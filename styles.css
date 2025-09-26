@@ -157,8 +157,26 @@ button,input,select{font:inherit;color:inherit}
 
 /* Tylko widok listy – ukryj przełączniki */
 .viewtog{display:none !important}
-/* === Admin: kompakt i bez rozciągania przycisku === */
-#tab-admin .controls.compact .controls__row{ align-items:flex-start; }
-#tab-admin #a-addRider{ align-self:flex-start; height:auto; }
+/* === Admin: kompakt, pola poziomo (w jednej linii jak się da) === */
+#tab-admin .controls.compact .grid2{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:flex-end;
+}
+#tab-admin .controls.compact .grid2 > label{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:0;
+}
+#tab-admin .controls.compact .grid2 > label > input,
+#tab-admin .controls.compact .grid2 > label > select{
+  width:160px; /* ciasno = mniejsza wysokość całej sekcji */
+}
+#tab-admin #a-addRider{
+  align-self:flex-end;
+  height:auto;
+  margin-left:8px;
+}
 #tab-admin .controls h3{ margin:0 0 6px; }
-#tab-admin .grid2{ gap:8px; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); }
