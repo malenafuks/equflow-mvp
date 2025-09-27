@@ -89,6 +89,19 @@ const seedInstructors = [
 
 const levels = ["kłus","kłus-galop","obóz","teren","lonża"];
 const seedRiders = (()=> {
+   /* === Admin: listy do kafeterii poziomów/typów === */
+const LEVELS_GROUP = ["kłus","kłus-galop","obóz","teren"];
+const LEVELS_INDIV = ["lonża","kłus","kłus-galop"];
+const PROCEDURES = [
+  "Kowal — werkowanie/podkucie",
+  "Weterynarz — szczepienia",
+  "Weterynarz — zęby",
+  "Weterynarz — badania okresowe",
+  "Kopyta — pielęgnacja",
+  "Wcierki chłodzące",
+  "Wcierki rozgrzewające",
+  "Golenie"
+];
   const base = todayISO();
   const times = ["10:00","11:00","12:00","16:00","17:00","18:00"];
   const firsts = ["Ola","Michał","Anka","Kuba","Julia","Tomek","Nina","Bartek","Iga","Paweł","Ala","Kamil","Zosia","Karol","Laura","Igor","Oskar","Magda","Adam","Ewelina"];
@@ -738,6 +751,18 @@ function renderReports(){
 }
 
 /* =================== ADMIN =================== */
+function populateAdminLevel(){
+  const rideType = $("#a-rideType").value;
+  const sel = $("#a-level");
+  if(!sel) return;
+
+  let opts = [];
+  if(rideType==="jazda_grupowa")      opts = LEVELS_GROUP;
+  else if(rideType==="jazda_indywidualna") opts = LEVELS_INDIV;
+  else                                  opts = PROCEDURES;
+
+  sel.innerHTML = opts.map(v=>`<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join("");
+}
 function initAdmin(){
   const day = todayISO();
   $("#a-day").value = state.ui.a?.day || day;
@@ -745,6 +770,8 @@ function initAdmin(){
   $("#adminTodayLabel").textContent = `Planowanie — ${isoToPL($("#a-day").value)}`;
 
   refreshAdminSelects();
+  populateAdminLevel();                              // <— DODANE
+  $("#a-rideType").addEventListener("change", populateAdminLevel); // <— DODANE
 
   $("#a-day").addEventListener("change", ()=>{
     state.ui.a.day = $("#a-day").value || todayISO();
