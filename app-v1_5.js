@@ -476,6 +476,7 @@ function renderInstructor(){
   list.querySelectorAll(".assign").forEach(b=>b.addEventListener("click", onAssignVolunteer));
   list.querySelectorAll(".nudge").forEach(b=>b.addEventListener("click", onNudge));
   list.querySelectorAll(".delete").forEach(b=>b.addEventListener("click", onDeleteTask));
+   list.querySelectorAll(".instAssign").forEach(b=>b.addEventListener("click", onAssignInstructor));
 
   setCountsInstructor(state.tasks);
 }
