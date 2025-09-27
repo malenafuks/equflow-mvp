@@ -7,7 +7,6 @@
   --review:#f3e8ff;      --review-b:#a855f7;
   --approved:#e8fbef;    --approved-b:#10b981;
 
-  /* wyróżnienie jazd i zadań codziennych */
   --ride:#e6fffb;        --ride-b:#06b6d4;
   --ride-ink:#0f172a;
   --daily:#f1f5f9;       --daily-b:#64748b;
@@ -16,21 +15,13 @@
   --max:1100px; --gap:14px;
 }
 
-/* === global helpers === */
+/* helpers */
 .hidden{ display:none !important; }
 .mini-nav{ display:none; }
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
 button,input,select{font:inherit;color:inherit}
-
-.topbar{position:sticky;top:0;z-index:10;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;background:var(--panel);border-bottom:1px solid #e5e7eb}
-.brand{display:flex;align-items:center;gap:8px;font-weight:700}
-.brand__dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
-.badge{padding:2px 8px;border-radius:999px;font-size:.78rem}
-.badge-soft{background:#f3f4f6;color:#374151;border:1px solid #e5e7eb}
-.userbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.userbox input{padding:9px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;width:190px}
 
 /* tabs */
 .tabs{display:flex;gap:8px;max-width:var(--max);margin:10px auto 0;padding:0 16px}
@@ -43,43 +34,6 @@ button,input,select{font:inherit;color:inherit}
 .tabpane.hidden{display:none}
 
 .wrap{max-width:var(--max);margin:14px auto 18px;padding:0 16px}
-
-/* statusbar */
-.statusbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow)}
-.statusbar__right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.stat{display:flex;align-items:center;gap:10px}
-.points{font-weight:800}
-.podkowy{display:inline-flex;gap:4px;transform:translateY(1px)}
-.podkowy .hs{width:18px;height:18px;border-radius:50%;border:2px solid var(--accent);background:transparent}
-.podkowy .hs.fill{background:var(--accent)}
-.demo{color:var(--muted);font-size:.92rem}
-
-/* controls */
-.controls{margin:16px 0;display:flex;flex-direction:column;gap:10px}
-.controls__row{display:flex;gap:10px;flex-wrap:wrap}
-.controls input[type="search"], .controls select, .controls input[type="text"], .controls input[type="time"], .controls input[type="date"], .controls input[type="number"], .controls input[type="tel"], .controls input[type="email"]{padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;flex:1}
-.stack>label{display:flex;flex-direction:column;gap:6px}
-.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
-.row-inline{display:flex;gap:10px;flex-wrap:wrap}
-
-.viewtog{display:flex;gap:6px}
-.viewbtn{border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer}
-.view-active{background:#eef2ff;border-color:#c7d2fe}
-.controls.compact .controls__row{ gap:8px; }
-.controls.compact input[type="search"],
-.controls.compact select,
-.controls.compact input[type="text"],
-.controls.compact input[type="time"],
-.controls.compact input[type="date"],
-.controls.compact input[type="number"],
-.controls.compact input[type="tel"],
-.controls.compact input[type="email"]{
-  padding:6px 8px;
-  height:34px;
-  border-radius:10px;
-}
-.controls.compact .viewtog .viewbtn{ padding:6px 8px; }
-.controls.compact .chips .chip{ padding:6px 10px; }
 
 /* chips */
 .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -100,7 +54,6 @@ button,input,select{font:inherit;color:inherit}
 
 .card{background:var(--panel);border:1px solid #e5e7eb;border-radius:18px;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:10px;transition:transform .08s ease, box-shadow .08s ease}
 .card:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(2,6,23,.1)}
-.card .title{display:flex;align-items:center;gap:10px}
 .card .title h3{margin:0;font-size:1rem}
 
 .badges{display:flex;flex-wrap:wrap;gap:6px}
@@ -120,34 +73,38 @@ button,input,select{font:inherit;color:inherit}
 .card.ride{border-color:var(--ride-b);background:var(--ride)}
 .card.future{opacity:.72}
 
-/* buttons */
+/* buttons / misc */
 .kit{display:flex;justify-content:space-between;gap:10px;align-items:center}
 .meta{color:var(--muted);font-size:.92rem}
-.actions{margin:18px 0;display:flex;gap:10px;flex-wrap:wrap}
-
 .btn{padding:10px 14px;border-radius:12px;border:1px solid #e5e7eb;background:var(--accent);color:var(--accent-ink);cursor:pointer}
-.btn:hover{filter:brightness(.97)}
 .btn.small{padding:6px 10px}
 .btn.ghost{background:#fff}
-.iconbtn{border:none;background:#fff;border-radius:10px;box-shadow:var(--shadow);padding:4px 10px;cursor:pointer}
-.iconbtn:hover{filter:brightness(.97)}
 
-/* schedule (admin) */
-.schedule.card{ margin-top:16px }
-.sched-grid{ display:flex; flex-direction:column; gap:0; }
-.sched-row{ display:flex; align-items:stretch; gap:0; border-bottom:1px solid #e5e7eb; }
-.sched-row.header{ position:sticky; top:0; z-index:1; background:#f8fafc; border-top:1px solid #e5e7eb; }
-.sched-time{ flex:0 0 90px; padding:10px 12px; font-weight:700; border-right:2px solid #111827; background:#fff; }
-.sched-slot{ flex:1 1 0; min-height:72px; padding:10px 12px; border-left:1px solid #e5e7eb; background:#fff; }
+/* sticky tabs */
+#tabsNav{
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(6px);
+  background: rgba(255,255,255,.9);
+  border-bottom: 1px solid #ececec;
+}
+
+/* === ADMIN: GRAFIK (GRID) === */
+.sched-wrap{ overflow-x:auto; }
+.sched-grid{ display:block; } /* sam kontener */
+.sched-row{ display:grid; grid-template-columns: 120px repeat(var(--sched-cols,5), minmax(160px,1fr)); }
+.sched-row.header{ position: sticky; top: 0; z-index: 3; background: var(--panel,#fff); border-bottom:1px solid #e5e7eb; }
+.sched-time{ position: sticky; left: 0; z-index: 2; background: var(--panel,#fff); border-right: 1px solid #eee; padding:10px 12px; font-weight:700; }
+.sched-slot{ min-height: 56px; display:flex; gap:6px; flex-direction:column; padding:8px; border-left:1px solid #f0f0f0; background:#fff; }
+.sched-row .sched-time{ align-self:stretch; display:flex; align-items:center; }
 .sched-row.header .sched-slot{ font-weight:600; background:#f8fafc; }
-.sched-slot .rider{ padding:6px 0; border-bottom:1px dashed #e5e7eb; font-size:.96rem; }
-.sched-slot .rider:last-child{ border-bottom:none; }
-.sched-row:nth-child(odd) .sched-time{ background:#fcfcfd; }
 
-@media print{
-  .sched-row{ border-bottom:1px solid #000; }
-  .sched-time{ border-right:2px solid #000; }
-  .sched-slot{ border-left:1px solid #000; }
+/* wpis jeźdźca */
+.rider{ font-size:.95rem; padding:6px 0; border-bottom:1px dashed #e5e7eb; }
+.rider:last-child{ border-bottom:none; }
+.rider.muted{ color: var(--muted,#666); }
+
+@media (max-width: 480px){
+  .sched-row{ grid-template-columns: 96px repeat(var(--sched-cols,5), minmax(140px,1fr)); }
 }
 
 /* print */
@@ -159,47 +116,6 @@ button,input,select{font:inherit;color:inherit}
   .sched-slot{border-color:#000}
 }
 
-/* modale */
-.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(17,24,39,.4);z-index:1000}
-.modal.hidden{display:none}
-.modal__card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:var(--shadow);max-width:560px;width:100%}
-.modal__head,.modal__foot{padding:12px 14px;border-bottom:1px solid #e5e7eb}
-.modal__foot{border-top:1px solid #e5e7eb;border-bottom:none}
-.modal__body{padding:14px}
-
-/* widok listy – ukryj przełączniki */
-.viewtog{display:none !important}
-
-/* admin: kompakt */
-#tab-admin .controls.compact .grid2{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; }
-#tab-admin .controls.compact .grid2 > label{ display:flex; align-items:center; gap:6px; margin:0; }
-#tab-admin .controls.compact .grid2 > label > input,
-#tab-admin .controls.compact .grid2 > label > select{ width:160px; }
-#tab-admin #a-addRider{ align-self:flex-end; height:auto; margin-left:8px; }
-#tab-admin .controls h3{ margin:0 0 6px; }
-
-/* sticky tabs */
-#tabsNav{
-  position: sticky; top: 0; z-index: 50;
-  backdrop-filter: blur(6px);
-  background: rgba(255,255,255,.9);
-  border-bottom: 1px solid #ececec;
-}
-
-/* admin: grafik — przewijanie */
-.sched-wrap{ overflow-x:auto; }
-.sched-row{ display:grid; grid-template-columns: 120px repeat(var(--sched-cols,5), minmax(160px,1fr)); }
-.sched-row.header{ position: sticky; top: 0; z-index: 3; background: var(--panel,#fff); }
-.sched-time{ position: sticky; left: 0; z-index: 2; background: var(--panel,#fff); border-right: 1px solid #eee; }
-.sched-slot{ min-height: 56px; display:flex; gap:6px; flex-direction:column; padding:8px; border-left:1px solid #f0f0f0; }
-.rider{ font-size:.95rem; }
-.rider.muted{ color: var(--muted,#666); }
-
-@media (max-width: 480px){
-  .sched-row{ grid-template-columns: 96px repeat(var(--sched-cols,5), minmax(140px,1fr)); }
-  .sched-slot{ min-height: 52px; }
-}
-
 /* wyróżnienie zadań do przypisania */
 .card.needs-assign{
   border: 2px dashed var(--gold,#FFD700);
@@ -208,12 +124,6 @@ button,input,select{font:inherit;color:inherit}
 @keyframes ef-pulse{
   0%,100%{ box-shadow: 0 0 0 0 rgba(255,215,0,.0); }
   50%{ box-shadow: 0 0 0 6px rgba(255,215,0,.18); }
-}
-
-/* urgent badge */
-.badge-urgent{
-  background: rgba(255,215,0,.18);
-  border: 1px solid var(--outline,rgba(255,215,0,.35));
 }
 
 /* pasek chipów instruktora */
