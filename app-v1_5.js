@@ -500,6 +500,21 @@ function cardHTMLInstructor(t){
     statusBadgeHTML(t.status)
   ].join("");
 
+  // ▼▼ NOWOŚĆ: dropdown instruktora tylko dla jazd
+  const instSelect = ride ? `
+    <div class="row-inline">
+      <span class="meta">Instruktor:</span>
+      <select class="instSel" data-id="${t.id}">
+        ${state.instructors.map(i => `
+          <option value="${escapeHTML(i.id)}" ${t.instructorId===i.id?'selected':''}>
+            ${escapeHTML(i.label)}
+          </option>
+        `).join("")}
+      </select>
+      <button class="btn small instAssign" data-id="${t.id}">OK</button>
+    </div>
+  ` : "";
+
   const actions = `
     ${t.status==="to_review" ? `<button class="btn small approve" data-id="${t.id}">Zatwierdź</button>
                                 <button class="btn small ghost reject" data-id="${t.id}">Odrzuć</button>` : ``}
@@ -513,6 +528,7 @@ function cardHTMLInstructor(t){
     <div class="title"><h3>${escapeHTML(t.title)}</h3></div>
     <div class="badges">${badges}</div>
     <div class="meta">${escapeHTML(meta)}</div>
+    ${instSelect}
     ${t.comments ? `<div class="meta">Uwagi: ${escapeHTML(t.comments)}</div>` : ""}
     <div class="kit">
       <button class="btn small openModal" data-id="${t.id}">Podgląd</button>
@@ -548,6 +564,36 @@ function onAssignVolunteer(e){
   const t = state.tasks.find(x=>x.id===id); if(!t) return;
   t.assignedTo = val; t.status = "taken"; persistAll(); renderAll();
 }
+function onAssignInstructor(e){
+  const id = e.currentTarget.dataset.id;
+  const card = e.currentTarget.closest(".card");
+  const sel = card.querySelector(".instSel");
+  const newInst = sel?.value;
+  if(!newInst) return;
+
+  // 1) aktualizuj task
+  const t = state.tasks.find(x=>x.id===id);
+  if(!t) return;
+  t.instructorId = newInst;
+
+  // 2) jeśli to jazda i mamy riderId -> aktualizuj odpowiadający wpis w grafiku
+  if((t.type==="jazda_grupowa" || t.type==="jazda_indywidualna") && t.riderId){
+    const r = state.riders.find(rr => rr.id === t.riderId);
+    if(r){ r.instructorId = newInst; }
+  } else if (t.type==="jazda_grupowa" || t.type==="jazda_indywidualna") {
+    // Fallback dla starszych jazd bez riderId: dopasowanie „po polach”
+    const match = state.riders.find(r =>
+      r.dateISO===t.dateISO &&
+      r.when===t.when &&
+      (r.horse||"") === (t.horse||"") &&
+      (`${r.first} ${r.last}` === (t.rider||""))
+    );
+    if(match){ match.instructorId = newInst; }
+  }
+
+  persistAll();
+  renderAll(); // odświeża i listę, i grafik
+}
 function onNudge(e){
   const id = e.currentTarget.dataset.id; const t=state.tasks.find(x=>x.id===id); if(!t) return;
   t.nudged = true; persistAll(); toastMsg("Wysłano przypomnienie (demo)"); renderAll();
@@ -555,11 +601,16 @@ function onNudge(e){
 function onDeleteTask(e){
   const id = e.currentTarget.dataset.id;
   if(!confirm("Usunąć to zadanie?")) return;
+
   const t = state.tasks.find(x=>x.id===id);
   if(!t) return;
 
-  // jeśli to jazda — usuń też z grafiku (riders) matching po dacie/godzinie/jeźdźcu/konu
-  if (t.type==="jazda_grupowa" || t.type==="jazda_indywidualna"){
+  // Najpierw próbujemy po riderId (nowe wpisy)
+  if ((t.type==="jazda_grupowa" || t.type==="jazda_indywidualna") && t.riderId){
+    state.riders = state.riders.filter(r => r.id !== t.riderId);
+  }
+  // Fallback dla starych wpisów bez riderId – dopasowanie po polach
+  else if (t.type==="jazda_grupowa" || t.type==="jazda_indywidualna"){
     state.riders = state.riders.filter(r=>{
       const sameDay = r.dateISO===t.dateISO;
       const sameTime = r.when===t.when;
@@ -570,7 +621,8 @@ function onDeleteTask(e){
   }
 
   state.tasks = state.tasks.filter(x=>x.id!==id);
-  persistAll(); renderAll();
+  persistAll();
+  renderAll();
 }
 function onApprove(e){
   const id = e.currentTarget.dataset.id; const t = state.tasks.find(x=>x.id===id); if(!t) return;
