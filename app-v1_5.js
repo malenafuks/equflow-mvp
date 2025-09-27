@@ -223,6 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#i-chipApproved")?.addEventListener("click", ()=>{ state.ui.i.status="approved"; setIChips("approved"); renderInstructor(); });
   $("#i-chipRejected")?.addEventListener("click", ()=>{ state.ui.i.status="rejected"; setIChips("rejected"); renderInstructor(); });
   $("#i-chipFuture")?.addEventListener("click", ()=>{ state.ui.i.future = !state.ui.i.future; $("#i-chipFuture").classList.toggle("chip-active", state.ui.i.future); renderInstructor(); });
+  setIChips(state.ui.i.status || "all");
 
   /* --------- WOLONTARIUSZ --------- */
   bindVolunteerUI();
@@ -589,6 +590,21 @@ function bindVolunteerUI(){
 function setChipActive(prefix, which){
   const ids = { v:{all:"#v-chipAll", open:"#v-chipOpen", taken:"#v-chipTaken", review:"#v-chipReview", approved:"#v-chipApproved"} };
   for(const k in ids[prefix]) $(ids[prefix][k])?.classList.toggle("chip-active", k===which);
+}
+function setIChips(which){
+  const ids = {
+    all: "#i-chipAll",
+    open: "#i-chipOpen",
+    taken: "#i-chipTaken",
+    review: "#i-chipReview",
+    approved: "#i-chipApproved",
+    rejected: "#i-chipRejected"
+  };
+  // zdejmij aktywność ze wszystkich
+  Object.values(ids).forEach(sel => $(sel)?.classList.remove("chip-active"));
+  // ustaw aktywny
+  const sel = ids[which] || ids.all;
+  $(sel)?.classList.add("chip-active");
 }
 function typeMapVolunteer(t){ return t==="prep" ? "siodłanie" : t; }
 function cardHTMLVolunteer(t){
