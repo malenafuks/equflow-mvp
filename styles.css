@@ -16,6 +16,10 @@
   --max:1100px; --gap:14px;
 }
 
+/* === global helpers === */
+.hidden{ display:none !important; }
+.mini-nav{ display:none; } /* ukrywamy linki Formularz/Lista itp. */
+
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
 button,input,select{font:inherit;color:inherit}
