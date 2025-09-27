@@ -1,13 +1,14 @@
-/* EquiFlow v1.5 — pełny skrypt (app-v1_5.js)
-   - Dymki przy dodawaniu
-   - Poprawka dodawania "Przygotowanie" po dodaniu jazdy
-   - Instruktor: lista + compact, filtry statusów, sort, priorytet "do przypisania"
-   - Admin: zapis na jazdę + grafik dnia (mobile grid var)
-   - Zabiegi rozszerzone (kowal/weterynarz itd.)
-   - Tytuł ≠ opis (Uwagi w comments)
+/* EquiFlow v1.6 — skrypt skonsolidowany
+   - Usunięcie jazdy u Instruktora usuwa ją z grafiku (riders)
+   - Admin: poziomy/typ jako dropdown (dynamiczny), zadania inne niż jazda
+   - Instruktor: domyślne z przypisaniem do „Ja” (jeśli wpisane)
+   - Instruktor: bez badge „Do przypisania”, priorytet wolnych zachowany
+   - Raporty: tabela
+   - Modal confirm centralnie + auto-scroll top
+   - Formularze: ukrywanie pola arena/kon/itd. wg typu
+   - Grafik: overlay „obróć telefon” w pionie
 */
 
-/* =================== Storage keys =================== */
 const LS = {
   TASKS: "equiflow_tasks_v1",
   USER: "equiflow_user_v1",
@@ -18,11 +19,9 @@ const LS = {
   UI: "equiflow_ui_v1"
 };
 
-/* =================== Shorthands =================== */
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
-/* =================== Helpers =================== */
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
 function save(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
 function load(k){ try{ return JSON.parse(localStorage.getItem(k)||""); }catch{ return null; } }
@@ -35,15 +34,11 @@ function clamp(n,min=0,max=4){ return Math.max(min, Math.min(max, n)); }
 function toastMsg(msg){ const el=$("#toast"); if(!el) return; el.textContent=msg; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"), 1800); }
 function escapeHTML(s){
   return String(s ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
 function addDays(iso,days){ const d=new Date(iso); d.setDate(d.getDate()+days); const z=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
 
-/* Mały dymek przy przycisku (sam znika) */
 function flash(anchorSelector, text){
   const anchor = typeof anchorSelector==="string" ? $(anchorSelector) : anchorSelector;
   if(!anchor){ toastMsg(text); return; }
@@ -65,20 +60,17 @@ function flash(anchorSelector, text){
   tip.style.top  = (r.top + window.scrollY - 38) + "px";
   requestAnimationFrame(()=>{
     tip.style.transition = "opacity .18s ease, transform .18s ease";
-    tip.style.opacity = "1";
-    tip.style.transform = "translateY(-12px)";
+    tip.style.opacity = "1"; tip.style.transform = "translateY(-12px)";
   });
   setTimeout(()=>{
-    tip.style.opacity = "0";
-    tip.style.transform = "translateY(-6px)";
+    tip.style.opacity = "0"; tip.style.transform = "translateY(-6px)";
     setTimeout(()=> tip.remove(), 200);
   }, 1500);
 }
 
-/* =================== Seeds =================== */
+/* === Seeds === */
 const seedHorseNames = ["Itaka","Basia","Nicpoń","Jurek","Prada","Emocja","Apollo","Mokka","Iskra","Orion","Luna","Tango","Sahara","Hermes","Bella"];
 const seedHorses = seedHorseNames.map(n=>({name:n,label:`koń ${n}` }));
-
 const seedInstructors = [
   {first:"Anna", gender:"F"},
   {first:"Katarzyna", gender:"F"},
@@ -87,9 +79,7 @@ const seedInstructors = [
   {first:"Marek", gender:"M"}
 ].map(p=>({...p, id:uid(), label:(p.gender==="F"?"pani ":"pan ")+p.first}));
 
-const levels = ["kłus","kłus-galop","obóz","teren","lonża"];
-const seedRiders = (()=> {
-   /* === Admin: listy do kafeterii poziomów/typów === */
+const levels = ["kłus","kłus-galop","obóz","teren","lonża"]; // legacy list (seed)
 const LEVELS_GROUP = ["kłus","kłus-galop","obóz","teren"];
 const LEVELS_INDIV = ["lonża","kłus","kłus-galop"];
 const PROCEDURES = [
@@ -102,25 +92,26 @@ const PROCEDURES = [
   "Wcierki rozgrzewające",
   "Golenie"
 ];
+
+const seedRiders = (()=> {
   const base = todayISO();
   const times = ["10:00","11:00","12:00","16:00","17:00","18:00"];
   const firsts = ["Ola","Michał","Anka","Kuba","Julia","Tomek","Nina","Bartek","Iga","Paweł","Ala","Kamil","Zosia","Karol","Laura","Igor","Oskar","Magda","Adam","Ewelina"];
   const lasts  = ["Kowalska","Nowak","Wiśniewska","Wójcik","Kamińska","Lewandowski","Zielińska","Szymański","Woźniak","Dąbrowska","Kozłowski","Jankowska","Mazur","Krawczyk","Piotrowska","Grabowski","Pawlak","Michalska","Król","Wieczorek"];
   return firsts.map((f,i)=>({
     id: uid(),
-    first: f,
-    last: lasts[i],
+    first: f, last: lasts[i],
     tel: `+48 600 00 ${String(10+i).padStart(2,"0")}`,
     email: `${f.toLowerCase()}.${lasts[i].toLowerCase()}@example.com`,
     level: levels[i % levels.length],
     dateISO: addDays(base, i % 5),
-    when: times[i % times.length],
+    when: ["10:00","11:00","12:00","16:00","17:00","18:00"][i % 6],
     instructorId: seedInstructors[i % seedInstructors.length].id,
     horse: seedHorses[i % seedHorses.length].name
   }));
 })();
 
-/* =================== Data model =================== */
+/* === Model === */
 function task(title, type, extra={}){
   return {
     id: uid(),
@@ -151,10 +142,9 @@ const seedTasks = [
   task("Dziennikarz/Kronikarz — dokumentuj dzień", "dziennikarz", {points:2, dateISO:todayISO()}),
 ];
 
-/* =================== State =================== */
 let state;
 
-/* =================== Bootstrap =================== */
+/* === Bootstrap === */
 document.addEventListener("DOMContentLoaded", () => {
   state = {
     volunteer: load(LS.USER) || { name: "" },
@@ -189,13 +179,13 @@ document.addEventListener("DOMContentLoaded", () => {
   state.ui.tab = state.ui.tab || "admin";
   save(LS.UI, state.ui);
 
-  /* --------- Tabs --------- */
+  /* Tabs */
   $("#tabsNav").addEventListener("click",(e)=>{
     const btn = e.target.closest(".tab"); if(!btn) return;
     switchTab(btn.dataset.tab); renderAll();
   });
 
-  /* --------- Profile --------- */
+  /* Profil */
   $("#volunteerName").value = state.volunteer.name || "";
   $("#saveUser").addEventListener("click", ()=>{
     state.volunteer.name = $("#volunteerName").value.trim();
@@ -204,25 +194,18 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAll();
   });
 
-  /* --------- Demo switch --------- */
-  const demoChk = $("#demoAutoApprove");
-  if (demoChk){
-    demoChk.checked = !!state.settings.demoAutoApprove;
-    demoChk.addEventListener("change", ()=>{ state.settings.demoAutoApprove = demoChk.checked; save(LS.SETTINGS, state.settings); });
-  }
-
-  /* --------- INSTRUKTOR --------- */
-  $("#i-view-cards")?.addEventListener("click", ()=>{ state.ui.i.view="list"; setViewActive("i","list"); renderInstructor(); });
+  /* INSTRUKTOR */
   $("#i-view-list")?.addEventListener("click", ()=>{ state.ui.i.view="list"; setViewActive("i","list"); renderInstructor(); });
   $("#i-taskType").addEventListener("change", renderDynamicFields);
   renderDynamicFields();
   $("#i-add").addEventListener("click", addInstructorTask);
   $("#i-createDefaults").addEventListener("click", ()=>{
     const now = todayISO();
+    const me = (state.volunteer.name||"").trim();
     const set = [
-      task("Prace porządkowe — stajnia", "porządki", {points:2, daily:true, dateISO:now}),
-      task("Wyprowadzenie Stada", "wyprowadzenie", {points:1, daily:true, dateISO:now}),
-      task("Sprowadzenie Stada", "sprowadzenie", {points:1, daily:true, dateISO:now}),
+      task("Prace porządkowe — stajnia", "porządki", {points:2, daily:true, dateISO:now, assignedTo: me || null}),
+      task("Wyprowadzenie Stada", "wyprowadzenie", {points:1, daily:true, dateISO:now, assignedTo: me || null}),
+      task("Sprowadzenie Stada", "sprowadzenie", {points:1, daily:true, dateISO:now, assignedTo: me || null}),
     ];
     state.tasks = set.concat(state.tasks);
     persistAll(); renderAll(); flash("#i-createDefaults","Dodano zestaw");
@@ -238,22 +221,21 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#i-chipFuture")?.addEventListener("click", ()=>{ state.ui.i.future = !state.ui.i.future; $("#i-chipFuture").classList.toggle("chip-active", state.ui.i.future); renderInstructor(); });
   setIChips(state.ui.i.status || "all");
 
-  /* --------- WOLONTARIUSZ --------- */
+  /* WOLONTARIUSZ */
   bindVolunteerUI();
 
-  /* --------- RAPORTY --------- */
+  /* RAPORTY */
   bindReportsUI();
 
-  /* --------- ADMIN --------- */
+  /* ADMIN */
   initAdmin();
 
-  /* --------- Start --------- */
-  // Prosty start bez skakania po anchorach
+  /* Start */
   switchTab(state.ui.tab);
   renderAll();
 });
 
-/* =================== Daily tasks guard =================== */
+/* === Codzienne === */
 function seedNow(){
   const base = todayISO();
   return [
@@ -280,11 +262,10 @@ function ensureDailyTasksForToday(){
   if (added>0) persistAll();
 }
 
-/* =================== Views switch =================== */
+/* === Widoki === */
 function setViewActive(prefix, which){
-  const map = { i:{cards:"#i-view-cards",list:"#i-view-list"}, v:{cards:"#v-view-cards",list:"#v-view-list"}, r:{cards:"#r-view-cards",list:"#r-view-list"} };
+  const map = { i:{list:"#i-view-list"}, v:{list:"#v-view-list"}, r:{list:"#r-view-list"} };
   const m = map[prefix];
-  $(m.cards)?.classList.toggle("view-active", which==="cards");
   $(m.list)?.classList.toggle("view-active", which==="list");
 }
 function switchTab(key){
@@ -296,8 +277,6 @@ function switchTab(key){
   $("#tab-admin").classList.toggle("hidden", key!=="admin");
   save(LS.UI, state.ui);
 }
-
-/* =================== Renders (global) =================== */
 function renderAll(){
   renderInstructor();
   renderVolunteer();
@@ -306,39 +285,50 @@ function renderAll(){
   save(LS.UI, state.ui);
 }
 
-/* =================== INSTRUCTOR =================== */
+/* === INSTRUKTOR === */
 function renderDynamicFields(){
   const c = $("#i-dynamicFields"); if(!c) return;
   c.innerHTML = "";
   const type = $("#i-taskType").value;
 
-  if(!state.horses || !state.horses.length) state.horses = seedHorses.slice();
-  if(!state.riders || !state.riders.length) state.riders = seedRiders.slice();
+  if(!state.horses?.length) state.horses = seedHorses.slice();
+  if(!state.riders?.length) state.riders = seedRiders.slice();
 
+  // wspólne
   const date = inputDate("Data", "i-date", todayISO());
   const time = inputTime("Godzina", "i-when");
   const horse = inputSelect("Koń", "i-horse", ["— koń —"].concat(state.horses.map(h=>h.name)));
   const rider = inputSelect("Jeździec", "i-rider", ["— jeździec —"].concat(uniqueRiderNames()));
-  const levelGroup = inputSelect("Poziom (grupa)", "i-level-group", ["kłus", "kłus-galop", "obóz", "teren"]);
-  const levelIndiv = inputSelect("Poziom (indywidualna)", "i-level-indiv", ["lonża", "kłus", "kłus-galop"]);
+  const levelGroup = inputSelect("Poziom (grupa)", "i-level-group", LEVELS_GROUP);
+  const levelIndiv = inputSelect("Poziom (indywidualna)", "i-level-indiv", LEVELS_INDIV);
 
-  if (type==="prep"){ append(c, date, time, horse, rider); }
+  // logika widoczności pól "głównych" z nagłówka
+  const placeWrap = $("#i-place")?.closest("label");
+  const titleWrap = $("#i-title")?.closest("label");
+  if (titleWrap) titleWrap.style.display = "none"; // tytuł ma nie mieszać UX
+
+  // pola dynamiczne
+  if (type==="prep"){
+    if (placeWrap) placeWrap.style.display = "none";
+    append(c, date, time, rider); // bez konia
+  }
   else if (type==="zabieg"){
-    const proc = inputSelect("Typ zabiegu","i-proc",[
-      "Kowal — werkowanie/podkucie",
-      "Weterynarz — szczepienia",
-      "Weterynarz — zęby",
-      "Weterynarz — badania okresowe",
-      "Kopyta — pielęgnacja",
-      "Wcierki chłodzące",
-      "Wcierki rozgrzewające",
-      "Golenie"
-    ]);
+    if (placeWrap) placeWrap.style.display = "none";
+    const proc = inputSelect("Typ zabiegu","i-proc",PROCEDURES);
     append(c, date, horse, proc);
   }
-  else if (type==="wyprowadzenie" || type==="sprowadzenie" || type==="rozsiodłanie"){ append(c, date, time); }
-  else if (type==="jazda_grupowa"){ append(c, date, time, levelGroup, horse, rider); }
-  else if (type==="jazda_indywidualna"){ append(c, date, time, levelIndiv, horse, rider); }
+  else if (["wyprowadzenie","sprowadzenie","rozsiodłanie"].includes(type)){
+    if (placeWrap) placeWrap.style.display = ""; // można zostawić
+    append(c, date, time);
+  }
+  else if (type==="jazda_grupowa"){
+    if (placeWrap) placeWrap.style.display = "";
+    append(c, date, time, levelGroup, horse, rider);
+  }
+  else if (type==="jazda_indywidualna"){
+    if (placeWrap) placeWrap.style.display = "";
+    append(c, date, time, levelIndiv, horse, rider);
+  }
 }
 function inputDate(label, id, iso){ const el=document.createElement("label"); el.innerHTML=`${label}<input id="${id}" type="date" value="${iso}"/>`; return el; }
 function inputTime(label, id){ const el=document.createElement("label"); el.innerHTML=`${label}<input id="${id}" type="time" />`; return el; }
@@ -348,7 +338,7 @@ function append(parent,...children){ children.forEach(ch=>parent.appendChild(ch)
 function makeTitle(tp, data){
   if(tp==="jazda_grupowa")      return `Jazda Grupowa — ${data.groupLevel||"—"} • ${data.horse||"—"} • ${data.rider||"—"}`;
   if(tp==="jazda_indywidualna") return `Jazda Indywidualna — ${data.indivLevel||"—"} • ${data.horse||"—"} • ${data.rider||"—"}`;
-  if(tp==="prep")               return `Przygotowanie — ${data.horse||"—"} • ${data.rider||"—"}`;
+  if(tp==="prep")               return `Przygotowanie — ${data.rider||"—"}`;
   if(tp==="zabieg")             return `Zabieg — ${data.procType||"—"} • ${data.horse||"—"}`;
   return typeLabel(tp);
 }
@@ -359,8 +349,7 @@ async function addInstructorTask(){
   const tp = $("#i-taskType").value;
   const points = clamp(+($("#i-points").value||2), 0, 4);
   const arena = ($("#i-place").value||"").trim() || null;
-  const title = ($("#i-title").value||"").trim(); // opcjonalny override
-
+  const title = ($("#i-title").value||"").trim();
   const dateISO = $("#i-date")?.value || todayISO();
   const when = $("#i-when")?.value || null;
   const horse = $("#i-horse")?.value && $("#i-horse").value!=="— koń —" ? $("#i-horse").value : null;
@@ -373,16 +362,16 @@ async function addInstructorTask(){
   let t;
 
   if (tp==="prep"){
-    if(!horse || !rider || !when){ toastMsg("Uzupełnij: koń, jeździec, godzina"); return; }
-    t = task(title||makeTitle(tp,{horse,rider,when}), "prep",
-      {arena, horse, rider, when, dateISO, points, comments: notes});
+    if(!rider || !when){ toastMsg("Przygotowanie: podaj jeźdźca i godzinę"); return; }
+    t = task(title||makeTitle(tp,{rider,when}), "prep",
+      {arena:null, horse:null, rider, when, dateISO, points, comments: notes});
   }
   else if (tp==="zabieg"){
-    if(!horse || !procType){ toastMsg("Dla zabiegu: wybierz konia i typ zabiegu"); return; }
+    if(!horse || !procType){ toastMsg("Zabieg: wybierz konia i typ zabiegu"); return; }
     t = task(title||makeTitle(tp,{horse,procType}), "zabieg",
-      {arena, horse, when, dateISO, points, procType, comments: notes});
+      {arena:null, horse, when, dateISO, points, procType, comments: notes});
   }
-  else if (tp==="wyprowadzenie" || tp==="sprowadzenie" || tp==="rozsiodłanie"){
+  else if (["wyprowadzenie","sprowadzenie","rozsiodłanie"].includes(tp)){
     t = task(title||typeLabel(tp), tp,
       {arena, when, dateISO, points, daily:true, comments: notes});
   }
@@ -402,15 +391,14 @@ async function addInstructorTask(){
     persistAll();
     await createPrepPrompt(t);
   }
-  else {
-    toastMsg("Nieobsługiwany typ"); return;
-  }
+  else { toastMsg("Nieobsługiwany typ"); return; }
 
-  if (tp!=="jazda_grupowa" && tp!=="jazda_indywidualna"){
+  if (!["jazda_grupowa","jazda_indywidualna"].includes(tp)){
     state.tasks.unshift(t);
     persistAll();
   }
 
+  // reset pola
   $("#i-title").value = "";
   $("#i-place").value = "";
   $("#i-points").value = 2;
@@ -423,13 +411,14 @@ async function addInstructorTask(){
 
 function createPrepPrompt(rideTask){
   return new Promise(async (resolve)=>{
+    window.scrollTo({ top: 0, behavior: "smooth" }); // zawsze pokaż modal centralnie
     const ok = await confirmInApp(
-      `Dodano ${typeLabel(rideTask.type)} (${isoToPL(rideTask.dateISO)} ${rideTask.when}).\nCzy zlecić osiodłanie konia wolontariuszowi?`,
+      `Dodano ${typeLabel(rideTask.type)} (${isoToPL(rideTask.dateISO)} ${rideTask.when}).\nCzy zlecić przygotowanie konia wolontariuszowi?`,
       {title:"Zlecić Przygotowanie do Jazdy?", ok:"Zleć", cancel:"Pomiń"}
     );
     if (ok){
-      const prep = task(`Przygotowanie — ${rideTask.horse} dla ${rideTask.rider}`, "prep", {
-        arena: rideTask.arena, horse: rideTask.horse, rider: rideTask.rider,
+      const prep = task(`Przygotowanie — ${rideTask.rider}`, "prep", {
+        arena: null, horse: null, rider: rideTask.rider,
         when: rideTask.when, dateISO: rideTask.dateISO, points:2
       });
       state.tasks.unshift(prep);
@@ -445,21 +434,16 @@ function renderInstructor(){
   const list = $("#i-list");
   if(!list) return;
 
-  // 1) Start od wszystkich
   let items = state.tasks.slice();
 
-  // 2) filtr statusu
   if(state.ui.i?.status && state.ui.i.status!=="all"){
     items = items.filter(t=> t.status===state.ui.i.status);
   }
-
-  // 3) filtr future
   if(state.ui.i?.future){
     const today = todayISO();
     items = items.filter(t=> t.dateISO > today);
   }
 
-  // 4) sortowanie
   items.sort((a,b)=>{
     const sort = state.ui.i?.sort || "newest";
     if(sort==="date"){
@@ -473,7 +457,7 @@ function renderInstructor(){
     return (b.ts||0) - (a.ts||0);
   });
 
-  // 5) priorytet: do przypisania
+  // priorytet: wolne bez przypisania na górze (bez badge)
   const needsAssign = items.filter(t=> t.status==="open" && !t.assignedTo);
   const rest = items.filter(t=> !(t.status==="open" && !t.assignedTo));
   items = needsAssign.concat(rest);
@@ -490,7 +474,6 @@ function renderInstructor(){
   list.querySelectorAll(".nudge").forEach(b=>b.addEventListener("click", onNudge));
   list.querySelectorAll(".delete").forEach(b=>b.addEventListener("click", onDeleteTask));
 
-  // Liczniki statusów (Instruktor)
   setCountsInstructor(state.tasks);
 }
 function cardHTMLInstructor(t){
@@ -508,12 +491,10 @@ function cardHTMLInstructor(t){
   const future = isFutureISO(t.dateISO);
   const ride = (t.type==="jazda_grupowa" || t.type==="jazda_indywidualna");
   const daily = t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type);
-  const needsAssign = (t.status==="open" && !t.assignedTo);
 
   const badges = [
     `<span class="badge-tag ${ride?'badge-ride':''} ${daily?'badge-daily':''}">${escapeHTML(typeLabel(t.type))}</span>`,
-    statusBadgeHTML(t.status),
-    needsAssign ? `<span class="badge-tag badge-urgent">Do przypisania</span>` : ""
+    statusBadgeHTML(t.status)
   ].join("");
 
   const actions = `
@@ -525,7 +506,7 @@ function cardHTMLInstructor(t){
   `;
 
   return `
-  <article class="card ${classByStatus(t.status)} ${ride?'ride':''} ${future?'future':''} ${needsAssign?'needs-assign':''}" data-id="${t.id}">
+  <article class="card ${classByStatus(t.status)} ${ride?'ride':''} ${future?'future':''}" data-id="${t.id}">
     <div class="title"><h3>${escapeHTML(t.title)}</h3></div>
     <div class="badges">${badges}</div>
     <div class="meta">${escapeHTML(meta)}</div>
@@ -571,6 +552,20 @@ function onNudge(e){
 function onDeleteTask(e){
   const id = e.currentTarget.dataset.id;
   if(!confirm("Usunąć to zadanie?")) return;
+  const t = state.tasks.find(x=>x.id===id);
+  if(!t) return;
+
+  // jeśli to jazda — usuń też z grafiku (riders) matching po dacie/godzinie/jeźdźcu/konu
+  if (t.type==="jazda_grupowa" || t.type==="jazda_indywidualna"){
+    state.riders = state.riders.filter(r=>{
+      const sameDay = r.dateISO===t.dateISO;
+      const sameTime = r.when===t.when;
+      const sameHorse = (r.horse||"") === (t.horse||"");
+      const sameRider = (`${r.first} ${r.last}` === (t.rider||""));
+      return !(sameDay && sameTime && sameHorse && sameRider);
+    });
+  }
+
   state.tasks = state.tasks.filter(x=>x.id!==id);
   persistAll(); renderAll();
 }
@@ -583,7 +578,7 @@ function onReject(e){
   t.status="rejected"; persistAll(); renderAll();
 }
 
-/* =================== VOLUNTEER =================== */
+/* === WOLONTARIUSZ === */
 function bindVolunteerUI(){
   $("#v-chipAll").addEventListener("click", ()=>{ state.ui.v.status="all"; setChipActive("v","all"); renderVolunteer(); });
   $("#v-chipOpen").addEventListener("click", ()=>{ state.ui.v.status="open"; setChipActive("v","open"); renderVolunteer(); });
@@ -593,8 +588,6 @@ function bindVolunteerUI(){
   $("#v-chipMine").addEventListener("click", ()=>{ state.ui.v.onlyMine = !state.ui.v.onlyMine; $("#v-chipMine").classList.toggle("chip-active", state.ui.v.onlyMine); renderVolunteer(); });
   $("#v-search").addEventListener("input", ()=>{ state.ui.v.search = $("#v-search").value; renderVolunteer(); });
   $("#v-type").addEventListener("change", ()=>{ state.ui.v.type = $("#v-type").value; renderVolunteer(); });
-  $("#v-view-cards")?.addEventListener("click", ()=>{ state.ui.v.view="list"; setViewActive("v","list"); renderVolunteer(); });
-  $("#v-view-list")?.addEventListener("click", ()=>{ state.ui.v.view="list"; setViewActive("v","list"); renderVolunteer(); });
   $("#pointsHistory").addEventListener("click", openPointsHistory);
   $("#exportCsv").addEventListener("click", exportCSV);
   $("#resetData").addEventListener("click", ()=>{ if(confirm("Zresetować do domyślnych?")){ resetAll(); }});
@@ -605,19 +598,9 @@ function setChipActive(prefix, which){
   for(const k in ids[prefix]) $(ids[prefix][k])?.classList.toggle("chip-active", k===which);
 }
 function setIChips(which){
-  const ids = {
-    all: "#i-chipAll",
-    open: "#i-chipOpen",
-    taken: "#i-chipTaken",
-    review: "#i-chipReview",
-    approved: "#i-chipApproved",
-    rejected: "#i-chipRejected"
-  };
-  // zdejmij aktywność ze wszystkich
+  const ids = { all:"#i-chipAll", open:"#i-chipOpen", taken:"#i-chipTaken", review:"#i-chipReview", approved:"#i-chipApproved", rejected:"#i-chipRejected" };
   Object.values(ids).forEach(sel => $(sel)?.classList.remove("chip-active"));
-  // ustaw aktywny
-  const sel = ids[which] || ids.all;
-  $(sel)?.classList.add("chip-active");
+  const sel = ids[which] || ids.all; $(sel)?.classList.add("chip-active");
 }
 function typeMapVolunteer(t){ return t==="prep" ? "siodłanie" : t; }
 function cardHTMLVolunteer(t){
@@ -685,29 +668,19 @@ function takeTask(t){
   t.status = "taken";
   t.assignedTo = me;
   persistAll();
-
-  if (state.settings.demoAutoApprove){
-    t.status = "approved";
-    persistAll();
-  }
-
+  if (state.settings.demoAutoApprove){ t.status = "approved"; persistAll(); }
   renderAll();
 }
 function markDone(t){
   if(t.status!=="taken"){ alert("To zadanie nie jest w trakcie."); return; }
   t.status = "to_review";
   persistAll();
-
-  if (state.settings.demoAutoApprove){
-    t.status = "approved";
-    persistAll();
-  }
-
+  if (state.settings.demoAutoApprove){ t.status = "approved"; persistAll(); }
   renderAll();
 }
 function openPointsHistory(){ alert("Demo: historia punktów w przygotowaniu."); }
 
-/* =================== REPORTS =================== */
+/* === RAPORTY (tabela) === */
 function bindReportsUI(){
   $("#r-from").value = state.ui.r.from || todayISO();
   $("#r-to").value = state.ui.r.to || todayISO();
@@ -717,10 +690,8 @@ function bindReportsUI(){
   $("#r-to").addEventListener("change", ()=>{ state.ui.r.to=$("#r-to").value; renderReports(); save(LS.UI,state.ui); });
   $("#r-group").addEventListener("change", ()=>{ state.ui.r.group=$("#r-group").value; renderReports(); save(LS.UI,state.ui); });
   $("#r-status").addEventListener("change", ()=>{ state.ui.r.status=$("#r-status").value; renderReports(); save(LS.UI,state.ui); });
-  $("#r-view-cards")?.addEventListener("click", ()=>{ state.ui.r.view="list"; setViewActive("r","list"); renderReports(); save(LS.UI,state.ui); });
   $("#r-view-list")?.addEventListener("click", ()=>{ state.ui.r.view="list"; setViewActive("r","list"); renderReports(); save(LS.UI,state.ui); });
 }
-
 function renderReports(){
   const list = $("#r-list"); if(!list) return;
 
@@ -737,32 +708,39 @@ function renderReports(){
 
   setCounts("r", items);
 
-  list.className = "list";
-  list.innerHTML = items.map(t=>`
-  <article class="card ${classByStatus(t.status)}">
-    <div class="title"><h3>${escapeHTML(t.title)}</h3></div>
-    <div class="badges">
-      <span class="badge-tag">${escapeHTML(typeLabel(t.type))}</span>
-      ${statusBadgeHTML(t.status)}
+  list.className = "";
+  list.innerHTML = `
+    <div style="overflow:auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Data</th><th>Godz.</th><th>Typ</th><th>Tytuł</th>
+            <th>Koń</th><th>Jeździec</th><th>Miejsce</th>
+            <th>Status</th><th>Pkt</th><th>Przypisane</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(t=>`
+            <tr>
+              <td>${escapeHTML(isoToPL(t.dateISO))}</td>
+              <td>${escapeHTML(t.when||"")}</td>
+              <td>${escapeHTML(typeLabel(t.type))}</td>
+              <td>${escapeHTML(t.title)}</td>
+              <td>${escapeHTML(t.horse||"")}</td>
+              <td>${escapeHTML(t.rider||"")}</td>
+              <td>${escapeHTML(t.arena||"")}</td>
+              <td>${escapeHTML(statusLabel(t.status))}</td>
+              <td>${escapeHTML(String(t.points||0))}</td>
+              <td>${escapeHTML(t.assignedTo||"")}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
     </div>
-    <div class="meta">${escapeHTML(isoToPL(t.dateISO))} ${t.when?("• "+t.when):""}</div>
-  </article>
-`).join("");
+  `;
 }
 
-/* =================== ADMIN =================== */
-function populateAdminLevel(){
-  const rideType = $("#a-rideType").value;
-  const sel = $("#a-level");
-  if(!sel) return;
-
-  let opts = [];
-  if(rideType==="jazda_grupowa")      opts = LEVELS_GROUP;
-  else if(rideType==="jazda_indywidualna") opts = LEVELS_INDIV;
-  else                                  opts = PROCEDURES;
-
-  sel.innerHTML = opts.map(v=>`<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join("");
-}
+/* === ADMIN === */
 function initAdmin(){
   const day = todayISO();
   $("#a-day").value = state.ui.a?.day || day;
@@ -770,8 +748,8 @@ function initAdmin(){
   $("#adminTodayLabel").textContent = `Planowanie — ${isoToPL($("#a-day").value)}`;
 
   refreshAdminSelects();
-  populateAdminLevel();                              // <— DODANE
-  $("#a-rideType").addEventListener("change", populateAdminLevel); // <— DODANE
+  populateAdminLevel();
+  $("#a-rideType").addEventListener("change", populateAdminLevel);
 
   $("#a-day").addEventListener("change", ()=>{
     state.ui.a.day = $("#a-day").value || todayISO();
@@ -784,6 +762,17 @@ function initAdmin(){
   $("#a-refresh").addEventListener("click", ()=>{ renderAdmin(); flash("#a-refresh","Odświeżono"); });
   $("#a-print").addEventListener("click", ()=>{ window.print(); });
 }
+function populateAdminLevel(){
+  const rideType = $("#a-rideType").value;
+  const sel = $("#a-level");
+  if(!sel) return;
+  let opts = [];
+  if(rideType==="jazda_grupowa") opts = LEVELS_GROUP;
+  else if(rideType==="jazda_indywidualna") opts = LEVELS_INDIV;
+  else if(rideType==="zabieg") opts = PROCEDURES;
+  else opts = []; // inne zadania nie potrzebują poziomu
+  sel.innerHTML = opts.map(v=>`<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join("");
+}
 function refreshAdminSelects(){
   const horseSel = $("#a-horse"); const instrSel=$("#a-instructor");
   horseSel.innerHTML = state.horses.map(h=>`<option value="${escapeHTML(h.name)}">${escapeHTML(h.name)}</option>`).join("");
@@ -794,34 +783,54 @@ function onAdminAddRider(){
   const last  = $("#a-last").value.trim();
   const phone = $("#a-phone").value.trim();
   const email = $("#a-email").value.trim();
-  const rideType = $("#a-rideType").value;
-  const level = $("#a-level").value;
+
+  const rideType = $("#a-rideType").value; // także inne zadania!
+  const level = $("#a-level").value;       // może być pusty dla nie-jazd
   const horse = $("#a-horse").value;
   const dateISO = $("#a-date").value || todayISO();
   const when = $("#a-when").value;
   const instructorId = $("#a-instructor").value;
 
-  if(!first || !last || !when || !dateISO){ alert("Uzupełnij: imię, nazwisko, datę i godzinę."); return; }
+  if(["jazda_grupowa","jazda_indywidualna","zabieg"].includes(rideType)){
+    if(!first || !last || !when || !dateISO){ alert("Uzupełnij: imię, nazwisko, datę i godzinę."); return; }
+  }
 
-  const rider = { id:uid(), first, last, tel:phone, email, level, dateISO, when, instructorId, horse };
-  state.riders.push(rider);
+  // Jeśli to jazda/zabieg — twórz ridera (dla grafiku)
+  if (rideType==="jazda_grupowa" || rideType==="jazda_indywidualna"){
+    const rider = { id:uid(), first, last, tel:phone, email, level, dateISO, when, instructorId, horse };
+    state.riders.push(rider);
+  }
 
-  // Dodaj zadanie jazdy (dla widoku instruktora)
+  // Dodaj zadanie
   let t;
   if(rideType==="jazda_grupowa"){
     t = task(`Jazda Grupowa — ${level}`, "jazda_grupowa", {horse, rider:`${first} ${last}`, when, dateISO, points:0, groupLevel:level});
   }else if(rideType==="jazda_indywidualna"){
     t = task(`Jazda Indywidualna — ${level}`, "jazda_indywidualna", {horse, rider:`${first} ${last}`, when, dateISO, points:0, indivLevel:level});
-  }else{
+  }else if(rideType==="zabieg"){
     t = task(`Zabieg — ${level} • ${horse}`, "zabieg", {horse, when, dateISO, points:2, procType:level});
+  }else{
+    // Inne zadania „codzienne” z panelu Admin (mirror Instruktora)
+    const mapTitle = {
+      "wyprowadzenie":"Wyprowadzenie Stada",
+      "sprowadzenie":"Sprowadzenie Stada",
+      "rozsiodłanie":"Rozsiodłanie",
+      "porządki":"Prace porządkowe",
+      "dziennikarz":"Dziennikarz / Kronikarz"
+    };
+    t = task(mapTitle[rideType] || rideType, rideType, {when, dateISO, points: rideType==="porządki" ? 2 : 1, daily:true});
   }
+
   state.tasks.unshift(t);
   persistAll();
   renderAll();
-  flash("#a-addRider","Dodano zapis");
+  flash("#a-addRider","Dodano zapis/zadanie");
 }
-function renderAdmin(buildScheduleOnly=false){
+function renderAdmin(){
   refreshAdminSelects();
+
+  // rotate overlay w pionie:
+  ensureRotateHint();
 
   const day = $("#a-day").value || todayISO();
   const riders = state.riders.filter(r=>r.dateISO===day);
@@ -831,7 +840,6 @@ function renderAdmin(buildScheduleOnly=false){
     byTime[r.when] = byTime[r.when] || [];
     byTime[r.when].push(r);
   });
-
   const times = Object.keys(byTime).sort();
   const instructors = state.instructors.slice();
 
@@ -839,10 +847,9 @@ function renderAdmin(buildScheduleOnly=false){
   const title = $("#schedTitle");
   title.textContent = `Grafik dnia — ${isoToPL(day)}`;
   grid.innerHTML = "";
-  // ustal liczbę kolumn (CSS var)
   grid.style.setProperty("--sched-cols", String(state.instructors.length));
 
-  // Header row
+  // Header
   const header = document.createElement("div");
   header.className = "sched-row header";
   header.appendChild(el("div","sched-time","Godzina"));
@@ -870,9 +877,20 @@ function renderAdmin(buildScheduleOnly=false){
     grid.appendChild(row);
   });
 }
+function ensureRotateHint(){
+  const wrap = $(".sched-wrap");
+  if(!wrap) return;
+  let hint = wrap.querySelector(".rotate-hint");
+  if(!hint){
+    hint = document.createElement("div");
+    hint.className = "rotate-hint";
+    hint.innerHTML = "Aby poprawnie wyświetlić grafik, <br/>obróć telefon poziomo lub otwórz na komputerze.";
+    wrap.appendChild(hint);
+  }
+}
 function el(tag, cls, text){ const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; }
 
-/* =================== Modal / Confirm =================== */
+/* === Modal / Confirm === */
 function openTaskModal(t){
   const m = $("#modal"); const body=$("#modalBody"); const foot=$("#modalFoot"); const title=$("#modalTitle");
   title.textContent = t.title;
@@ -881,11 +899,9 @@ function openTaskModal(t){
     ${t.arena?`<p><strong>Miejsce:</strong> ${escapeHTML(t.arena)}</p>`:""}
     ${t.horse?`<p><strong>Koń:</strong> ${escapeHTML(t.horse)}</p>`:""}
     ${t.rider?`<p><strong>Jeździec:</strong> ${escapeHTML(t.rider)}</p>`:""}
-    <p><strong>Status:</strong> ${escapeHTML(t.status)}</p>
+    <p><strong>Status:</strong> ${escapeHTML(statusLabel(t.status))}</p>
   `;
-  foot.innerHTML = `
-    <button class="btn ghost" id="mClose">Zamknij</button>
-  `;
+  foot.innerHTML = `<button class="btn ghost" id="mClose">Zamknij</button>`;
   $("#mClose").addEventListener("click", ()=> m.classList.add("hidden"));
   $("#closeModal").addEventListener("click", ()=> m.classList.add("hidden"));
   m.classList.remove("hidden");
@@ -908,7 +924,7 @@ function confirmInApp(message, {title="Potwierdź", ok="OK", cancel="Anuluj"}={}
   });
 }
 
-/* =================== Utilities =================== */
+/* === Utils === */
 function typeLabel(t){
   const map = {
     "porządki":"Prace porządkowe",
@@ -926,10 +942,10 @@ function typeLabel(t){
   };
   return map[t] || t;
 }
+function statusLabel(st){ return {open:"Wolne",taken:"W trakcie",to_review:"Do weryf.",approved:"Zatwierdzone",rejected:"Odrzucone"}[st] || st; }
 function statusBadgeHTML(st){
-  const cls = {open:"badge-open",taken:"badge-taken",to_review:"badge-review",approved:"badge-approved"}[st] || "badge-open";
-  const label = {open:"Wolne",taken:"W trakcie",to_review:"Do weryf.",approved:"Zatwierdzone",rejected:"Odrzucone"}[st] || st;
-  return `<span class="badge-tag ${cls}">${label}</span>`;
+  const cls = {open:"badge-open",taken:"badge-taken",to_review:"badge-review",approved:"badge-approved",rejected:"badge-rejected"}[st] || "badge-open";
+  return `<span class="badge-tag ${cls}">${statusLabel(st)}</span>`;
 }
 function classByStatus(st){ return st; }
 function horseshoesHTML(n){
@@ -986,5 +1002,4 @@ function persistAll(){
   save(LS.UI, state.ui);
 }
 
-/* ================ Dev marker ================ */
-console.log("EquiFlow v1.5 – pełny app-v1_5.js (skonsolidowany) załadowany.");
+console.log("EquiFlow v1.6 — załadowano");
