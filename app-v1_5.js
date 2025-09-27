@@ -234,20 +234,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initAdmin();
 
   /* --------- Start --------- */
-  // Obsługa #anchor w URL
-  const hash = (location.hash || "").toLowerCase();
-  const hashToTab = {
-    "#admintop":"admin", "#a-form":"admin", "#a-schedule":"admin",
-    "#instructortop":"instructor", "#i-form":"instructor", "#i-list":"instructor",
-    "#volunteertop":"volunteer", "#v-filters":"volunteer", "#v-list":"volunteer",
-    "#reportstop":"reports", "#r-filters":"reports", "#r-list":"reports"
-  };
-  if (hash && hashToTab[hash]){
-    switchTab(hashToTab[hash]);
-    document.querySelector(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  } else {
-    switchTab(state.ui.tab);
-  }
+  // Prosty start bez skakania po anchorach
+  switchTab(state.ui.tab);
   renderAll();
 });
 
@@ -293,17 +281,6 @@ function switchTab(key){
   $("#tab-reports").classList.toggle("hidden", key!=="reports");
   $("#tab-admin").classList.toggle("hidden", key!=="admin");
   save(LS.UI, state.ui);
-  // skok do nagłówka sekcji
-  const anchors = {
-    admin: "#adminTop",
-    instructor: "#instructorTop",
-    volunteer: "#volunteerTop",
-    reports: "#reportsTop"
-  };
-  const sel = anchors[key];
-  if (sel){
-    document.querySelector(sel)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
 }
 
 /* =================== Renders (global) =================== */
