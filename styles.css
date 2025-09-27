@@ -219,3 +219,45 @@ button,input,select{font:inherit;color:inherit}
   margin-left:8px;
 }
 #tab-admin .controls h3{ margin:0 0 6px; }
+/* === Sticky tabs (zawsze widoczne) === */
+#tabsNav{
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(6px);
+  background: rgba(255,255,255,.9);
+  border-bottom: 1px solid #ececec;
+}
+
+/* === Admin: grafik — przewijanie w poziomie + sticky nagłówek/kolumna === */
+.sched-wrap{ overflow-x:auto; }
+.sched-row{ display:grid; grid-template-columns: 120px repeat(var(--sched-cols,5), minmax(160px,1fr)); }
+.sched-row.header{ position: sticky; top: 0; z-index: 3; background: var(--panel,#fff); }
+.sched-time{ position: sticky; left: 0; z-index: 2; background: var(--panel,#fff); border-right: 1px solid #eee; }
+.sched-slot{ min-height: 56px; display:flex; gap:6px; flex-direction:column; padding:8px; border-left:1px solid #f0f0f0; }
+.rider{ font-size:.95rem; }
+.rider.muted{ color: var(--muted,#666); }
+
+/* Mobile drobniejsze kolumny */
+@media (max-width: 480px){
+  .sched-row{ grid-template-columns: 96px repeat(var(--sched-cols,5), minmax(140px,1fr)); }
+  .sched-slot{ min-height: 52px; }
+}
+
+/* === Wyróżnienie zadań do przypisania === */
+.card.needs-assign{
+  border: 2px dashed var(--gold,#FFD700);
+  animation: ef-pulse 2.8s ease-in-out infinite;
+}
+@keyframes ef-pulse{
+  0%,100%{ box-shadow: 0 0 0 0 rgba(255,215,0,.0); }
+  50%{ box-shadow: 0 0 0 6px rgba(255,215,0,.18); }
+}
+
+/* Badge dla "wolne priorytet" */
+.badge-urgent{
+  background: rgba(255,215,0,.18);
+  border: 1px solid var(--outline,rgba(255,215,0,.35));
+}
+
+/* Pasek chipów Instruktora (jak u Wolontariusza) */
+.i-chips{ display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }
+.i-chips .chip{ cursor:pointer; }
