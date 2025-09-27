@@ -851,45 +851,7 @@ function onAdminAddRider(){
   persistAll();
   renderAll();
   flash("#a-addRider", "Dodano zapis/zadanie");
-}
-
-  state.tasks.unshift(t);
-  persistAll();
-  renderAll();
-  flash("#a-addRider","Dodano zapis/zadanie");
-}
-
-  // Jeśli to jazda/zabieg — twórz ridera (dla grafiku)
-  if (rideType==="jazda_grupowa" || rideType==="jazda_indywidualna"){
-    const rider = { id:uid(), first, last, tel:phone, email, level, dateISO, when, instructorId, horse };
-    state.riders.push(rider);
-  }
-
-  // Dodaj zadanie
-  let t;
-  if(rideType==="jazda_grupowa"){
-    t = task(`Jazda Grupowa — ${level}`, "jazda_grupowa", {horse, rider:`${first} ${last}`, when, dateISO, points:0, groupLevel:level});
-  }else if(rideType==="jazda_indywidualna"){
-    t = task(`Jazda Indywidualna — ${level}`, "jazda_indywidualna", {horse, rider:`${first} ${last}`, when, dateISO, points:0, indivLevel:level});
-  }else if(rideType==="zabieg"){
-    t = task(`Zabieg — ${level} • ${horse}`, "zabieg", {horse, when, dateISO, points:2, procType:level});
-  }else{
-    // Inne zadania „codzienne” z panelu Admin (mirror Instruktora)
-    const mapTitle = {
-      "wyprowadzenie":"Wyprowadzenie Stada",
-      "sprowadzenie":"Sprowadzenie Stada",
-      "rozsiodłanie":"Rozsiodłanie",
-      "porządki":"Prace porządkowe",
-      "dziennikarz":"Dziennikarz / Kronikarz"
-    };
-    t = task(mapTitle[rideType] || rideType, rideType, {when, dateISO, points: rideType==="porządki" ? 2 : 1, daily:true});
-  }
-
-  state.tasks.unshift(t);
-  persistAll();
-  renderAll();
-  flash("#a-addRider","Dodano zapis/zadanie");
-}
+   }
 function renderAdmin(){
   refreshAdminSelects();
 
