@@ -8,7 +8,7 @@
   --approved:#e8fbef;    --approved-b:#10b981;
 
   /* wyróżnienie jazd i zadań codziennych */
-  --ride:#e6fffb;        --ride-b:#06b6d4; /* mocniejszy cyan */
+  --ride:#e6fffb;        --ride-b:#06b6d4;
   --ride-ink:#0f172a;
   --daily:#f1f5f9;       --daily-b:#64748b;
 
@@ -18,7 +18,7 @@
 
 /* === global helpers === */
 .hidden{ display:none !important; }
-.mini-nav{ display:none; } /* ukrywamy linki Formularz/Lista itp. */
+.mini-nav{ display:none; }
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
@@ -35,10 +35,10 @@ button,input,select{font:inherit;color:inherit}
 /* tabs */
 .tabs{display:flex;gap:8px;max-width:var(--max);margin:10px auto 0;padding:0 16px}
 .tab{padding:10px 14px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
-.tab-instructor{background:#ecfeff;border-color:#a5f3fc}
-.tab-volunteer{background:#fefce8;border-color:#fde68a}
-.tab-admin{background:#e8f7ee;border-color:#bbf7d0}
-.tab-reports{background:#f1f5f9;border-color:#cbd5e1}
+.tab[data-tab="admin"]{background:#e8f7ee;border-color:#bbf7d0}
+.tab[data-tab="instructor"]{background:#ecfeff;border-color:#a5f3fc}
+.tab[data-tab="volunteer"]{background:#fefce8;border-color:#fde68a}
+.tab[data-tab="reports"]{background:#f1f5f9;border-color:#cbd5e1}
 .tab-active{outline:2px solid #c7d2fe}
 .tabpane.hidden{display:none}
 
@@ -65,7 +65,6 @@ button,input,select{font:inherit;color:inherit}
 .viewtog{display:flex;gap:6px}
 .viewbtn{border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer}
 .view-active{background:#eef2ff;border-color:#c7d2fe}
-/* === tryb kompaktowy filtrów (mniej pionu) === */
 .controls.compact .controls__row{ gap:8px; }
 .controls.compact input[type="search"],
 .controls.compact select,
@@ -110,6 +109,7 @@ button,input,select{font:inherit;color:inherit}
 .badge-taken{background:var(--taken);color:var(--taken-b);border-color:var(--taken-b)}
 .badge-review{background:var(--review);color:var(--review-b);border-color:var(--review-b)}
 .badge-approved{background:var(--approved);color:var(--approved-b);border-color:var(--approved-b)}
+.badge-rejected{background:#ffe8e8;color:#dc2626;border-color:#dc2626}
 .badge-ride{background:var(--ride);color:var(--ride-ink);border-color:var(--ride-b)}
 .badge-daily{background:var(--daily);color:var(--daily-b);border-color:var(--daily-b)}
 
@@ -133,54 +133,22 @@ button,input,select{font:inherit;color:inherit}
 .iconbtn:hover{filter:brightness(.97)}
 
 /* schedule (admin) */
-/* schedule (admin) — TABELA: godzina = rząd, instruktorzy = kolumny */
 .schedule.card{ margin-top:16px }
 .sched-grid{ display:flex; flex-direction:column; gap:0; }
-
-/* nagłówek i rzędy */
 .sched-row{ display:flex; align-items:stretch; gap:0; border-bottom:1px solid #e5e7eb; }
 .sched-row.header{ position:sticky; top:0; z-index:1; background:#f8fafc; border-top:1px solid #e5e7eb; }
-
-/* pierwsza kolumna: godzina */
-.sched-time{
-  flex:0 0 90px;
-  padding:10px 12px;
-  font-weight:700;
-  border-right:2px solid #111827;   /* grubszy separator jak na screenie */
-  background:#fff;
-}
-
-/* kolumny instruktorów */
-.sched-slot{
-  flex:1 1 0;
-  min-height:72px;
-  padding:10px 12px;
-  border-left:1px solid #e5e7eb;
-  background:#fff;
-}
-.sched-row.header .sched-slot{
-  font-weight:600;
-  background:#f8fafc;
-}
-
-/* wpis jeźdźca w komórce */
-.sched-slot .rider{
-  padding:6px 0;
-  border-bottom:1px dashed #e5e7eb;
-  font-size:.96rem;
-}
+.sched-time{ flex:0 0 90px; padding:10px 12px; font-weight:700; border-right:2px solid #111827; background:#fff; }
+.sched-slot{ flex:1 1 0; min-height:72px; padding:10px 12px; border-left:1px solid #e5e7eb; background:#fff; }
+.sched-row.header .sched-slot{ font-weight:600; background:#f8fafc; }
+.sched-slot .rider{ padding:6px 0; border-bottom:1px dashed #e5e7eb; font-size:.96rem; }
 .sched-slot .rider:last-child{ border-bottom:none; }
-
-/* delikatne wyróżnienie godzin porannych/pop. (opcjonalne) */
 .sched-row:nth-child(odd) .sched-time{ background:#fcfcfd; }
 
-/* druk – wyraźne linie tabeli */
 @media print{
   .sched-row{ border-bottom:1px solid #000; }
   .sched-time{ border-right:2px solid #000; }
   .sched-slot{ border-left:1px solid #000; }
 }
-
 
 /* print */
 @media print{
@@ -190,7 +158,8 @@ button,input,select{font:inherit;color:inherit}
   .card{box-shadow:none;border-color:#000}
   .sched-slot{border-color:#000}
 }
-/* === Modale (ukrycie + karta) === */
+
+/* modale */
 .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(17,24,39,.4);z-index:1000}
 .modal.hidden{display:none}
 .modal__card{background:#fff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:var(--shadow);max-width:560px;width:100%}
@@ -198,32 +167,18 @@ button,input,select{font:inherit;color:inherit}
 .modal__foot{border-top:1px solid #e5e7eb;border-bottom:none}
 .modal__body{padding:14px}
 
-/* Tylko widok listy – ukryj przełączniki */
+/* widok listy – ukryj przełączniki */
 .viewtog{display:none !important}
-/* === Admin: kompakt, pola poziomo (w jednej linii jak się da) === */
-#tab-admin .controls.compact .grid2{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  align-items:flex-end;
-}
-#tab-admin .controls.compact .grid2 > label{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  margin:0;
-}
+
+/* admin: kompakt */
+#tab-admin .controls.compact .grid2{ display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end; }
+#tab-admin .controls.compact .grid2 > label{ display:flex; align-items:center; gap:6px; margin:0; }
 #tab-admin .controls.compact .grid2 > label > input,
-#tab-admin .controls.compact .grid2 > label > select{
-  width:160px; /* ciasno = mniejsza wysokość całej sekcji */
-}
-#tab-admin #a-addRider{
-  align-self:flex-end;
-  height:auto;
-  margin-left:8px;
-}
+#tab-admin .controls.compact .grid2 > label > select{ width:160px; }
+#tab-admin #a-addRider{ align-self:flex-end; height:auto; margin-left:8px; }
 #tab-admin .controls h3{ margin:0 0 6px; }
-/* === Sticky tabs (zawsze widoczne) === */
+
+/* sticky tabs */
 #tabsNav{
   position: sticky; top: 0; z-index: 50;
   backdrop-filter: blur(6px);
@@ -231,7 +186,7 @@ button,input,select{font:inherit;color:inherit}
   border-bottom: 1px solid #ececec;
 }
 
-/* === Admin: grafik — przewijanie w poziomie + sticky nagłówek/kolumna === */
+/* admin: grafik — przewijanie */
 .sched-wrap{ overflow-x:auto; }
 .sched-row{ display:grid; grid-template-columns: 120px repeat(var(--sched-cols,5), minmax(160px,1fr)); }
 .sched-row.header{ position: sticky; top: 0; z-index: 3; background: var(--panel,#fff); }
@@ -240,13 +195,12 @@ button,input,select{font:inherit;color:inherit}
 .rider{ font-size:.95rem; }
 .rider.muted{ color: var(--muted,#666); }
 
-/* Mobile drobniejsze kolumny */
 @media (max-width: 480px){
   .sched-row{ grid-template-columns: 96px repeat(var(--sched-cols,5), minmax(140px,1fr)); }
   .sched-slot{ min-height: 52px; }
 }
 
-/* === Wyróżnienie zadań do przypisania === */
+/* wyróżnienie zadań do przypisania */
 .card.needs-assign{
   border: 2px dashed var(--gold,#FFD700);
   animation: ef-pulse 2.8s ease-in-out infinite;
@@ -256,12 +210,12 @@ button,input,select{font:inherit;color:inherit}
   50%{ box-shadow: 0 0 0 6px rgba(255,215,0,.18); }
 }
 
-/* Badge dla "wolne priorytet" */
+/* urgent badge */
 .badge-urgent{
   background: rgba(255,215,0,.18);
   border: 1px solid var(--outline,rgba(255,215,0,.35));
 }
 
-/* Pasek chipów Instruktora (jak u Wolontariusza) */
+/* pasek chipów instruktora */
 .i-chips{ display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }
 .i-chips .chip{ cursor:pointer; }
