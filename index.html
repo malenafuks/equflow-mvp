@@ -1,280 +1,320 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="utf-8" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EquiFlow — v1.5</title>
-  <link rel="stylesheet" href="styles.css?v=1.5" />
+  <title>EquiFlow v1.5 — MVP</title>
+  <link rel="stylesheet" href="styles.css" />
+  <meta name="color-scheme" content="light only" />
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">
-    <span class="brand__dot"></span> EquiFlow
-    <small class="badge badge-soft">MVP v1.5</small>
-  </div>
-  <div class="userbox">
-    <label>Ja jako:
-      <input id="volunteerName" type="text" placeholder="Twoje imię" />
-    </label>
-    <button id="saveUser" class="btn small">Zapisz</button>
-  </div>
-</header>
 
-<nav id="tabsNav" class="tabs">
-  <button class="tab tab-admin tab-active" data-tab="admin">Administracja</button>
-  <button class="tab tab-instructor" data-tab="instructor">Instruktor</button>
-  <button class="tab tab-volunteer" data-tab="volunteer">Wolontariusz</button>
-  <button class="tab tab-reports" data-tab="reports">Raporty</button>
-</nav>
-
-<main class="wrap">
-  <!-- === INSTRUCTOR TAB === -->
-  <section id="tab-instructor" class="tabpane">
-    <section class="statusbar">
-      <div class="stat"><span class="label">Panel instruktora</span></div>
-      <div class="statusbar__right">
-        <button id="i-createDefaults" class="btn small">Dodaj zadania domyślne</button>
+  <!-- ======= TOP NAV / TABS (sticky) ======= -->
+  <header id="tabsNav" class="tabs">
+    <nav class="wrap">
+      <button class="tab tab-active" data-tab="admin">Administracja</button>
+      <button class="tab" data-tab="instructor">Instruktor</button>
+      <button class="tab" data-tab="volunteer">Wolontariusz</button>
+      <button class="tab" data-tab="reports">Raporty</button>
+      <div class="spacer"></div>
+      <div class="profile mini">
+        <label for="volunteerName">Ja:</label>
+        <input id="volunteerName" type="text" placeholder="imię" />
+        <button id="saveUser" class="btn small">Zapisz</button>
       </div>
-    </section>
+    </nav>
+  </header>
 
- <section class="controls compact">
-      <div class="controls__row stack">
-        <label>Rodzaj zadania
-          <select id="i-taskType">
-            <option value="prep">Przygotowanie do Jazdy</option>
-            <option value="zabieg">Zabieg</option>
-            <option value="wyprowadzenie">Wyprowadzenie Stada</option>
-            <option value="sprowadzenie">Sprowadzenie Stada</option>
-            <option value="rozsiodłanie">Rozsiodłanie</option>
-            <option value="jazda_grupowa">Jazda Grupowa</option>
-            <option value="jazda_indywidualna">Jazda Indywidualna</option>
-          </select>
-        </label>
+  <main class="wrap">
 
-        <div id="i-dynamicFields" class="grid2"></div>
+    <!-- ======= INSTRUKTOR ======= -->
+    <section id="tab-instructor" class="">
+      <h2 id="instructorTop">Instruktor</h2>
 
-        <div class="row-inline">
-          <label>Punkty
+      <!-- szybkie kotwice w obrębie zakładki -->
+      <p class="mini-nav">
+        <a href="#i-form">↘ Formularz</a> •
+        <a href="#i-list">↘ Lista zadań</a>
+      </p>
+
+      <!-- Pasek widoków (zostawiamy na przyszłość) -->
+      <div class="toolbar">
+        <div class="left">
+          <button id="i-view-list" class="btn small view-active">Lista</button>
+        </div>
+        <div class="right">
+          <button id="i-createDefaults" class="btn ghost small">Dodaj domyślne (dziś)</button>
+        </div>
+      </div>
+
+      <!-- CHIPY statusów (nowe) -->
+      <div class="i-chips">
+        <button id="i-chipAll" class="chip chip-active">Wszystkie <span id="i-countAll" class="badge small">0</span></button>
+        <button id="i-chipOpen" class="chip">Wolne <span id="i-countOpen" class="badge small">0</span></button>
+        <button id="i-chipTaken" class="chip">W trakcie <span id="i-countTaken" class="badge small">0</span></button>
+        <button id="i-chipReview" class="chip">Do weryf. <span id="i-countReview" class="badge small">0</span></button>
+        <button id="i-chipApproved" class="chip">Zatwierdzone <span id="i-countApproved" class="badge small">0</span></button>
+        <button id="i-chipRejected" class="chip">Odrzucone <span id="i-countRejected" class="badge small">0</span></button>
+        <button id="i-chipFuture" class="chip">Tylko przyszłe</button>
+      </div>
+
+      <!-- FORMULARZ DODAWANIA -->
+      <div id="i-form" class="panel">
+        <h3>Dodaj zadanie</h3>
+
+        <div class="grid g2">
+          <label for="i-taskType">Typ zadania
+            <select id="i-taskType">
+              <option value="jazda_grupowa">Jazda grupowa</option>
+              <option value="jazda_indywidualna">Jazda indywidualna</option>
+              <option value="prep">Przygotowanie do jazdy</option>
+              <option value="zabieg">Zabieg</option>
+              <option value="wyprowadzenie">Wyprowadzenie Stada</option>
+              <option value="sprowadzenie">Sprowadzenie Stada</option>
+              <option value="rozsiodłanie">Rozsiodłanie</option>
+              <option value="dziennikarz">Dziennikarz / Kronikarz</option>
+            </select>
+          </label>
+
+          <label for="i-place">Miejsce/arena
+            <input id="i-place" type="text" placeholder="np. ujeżdżalnia A" />
+          </label>
+
+          <label for="i-points">Punkty (0–4)
             <input id="i-points" type="number" min="0" max="4" value="2" />
           </label>
-          <label>Arena
-            <input id="i-place" type="text" placeholder="np. hala / arena 1" />
+
+          <!-- stary tytuł zostawiam, ale nie jest już wymagany -->
+          <label for="i-title">Tytuł (opcjonalnie)
+            <input id="i-title" type="text" placeholder="opcjonalnie – generujemy automatycznie" />
           </label>
         </div>
 
-        <label>Tytuł / opis (opcjonalnie)
-          <input id="i-title" type="text" placeholder="np. Przygotowanie — koń Prada dla Oli" />
+        <!-- dynamiczne pola zależne od typu -->
+        <div id="i-dynamicFields" class="grid g2"></div>
+
+        <!-- UWAGI – nie zamieniają się w tytuł -->
+        <label for="i-notes">Uwagi
+          <textarea id="i-notes" rows="2" placeholder="np. siodło ujeżdżeniowe, ochraniacze, itp."></textarea>
         </label>
 
-        <button id="i-add" class="btn">Dodaj zadanie</button>
-      </div>
-
-      <div class="controls__row">
-        <div class="viewtog">
-          <button id="i-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
-          <button id="i-view-list" class="viewbtn" title="Lista">≣</button>
+        <div class="actions">
+          <button id="i-add" class="btn">Dodaj</button>
         </div>
       </div>
+
+      <!-- LISTA -->
+      <h3 id="i-list-h">Zadania</h3>
+      <div id="i-list" class="list"></div>
     </section>
 
-    <section id="i-list" class="grid"></section>
-  </section>
+    <!-- ======= WOLONTARIUSZ ======= -->
+    <section id="tab-volunteer" class="hidden">
+      <h2 id="volunteerTop">Wolontariusz</h2>
 
-  <!-- === VOLUNTEER TAB === -->
-  <section id="tab-volunteer" class="tabpane hidden">
-    <section class="statusbar">
-      <div class="stat">
-        <span class="label">Moje punkty:</span>
-        <span id="myPoints" class="points">0</span>
-        <span class="podkowy" id="myHorseshoes" aria-hidden="true"></span>
-      </div>
-      <div class="statusbar__right">
-        <button id="pointsHistory" class="btn small ghost">Historia punktów</button>
-        <label class="demo">
-          <input id="demoAutoApprove" type="checkbox" />
-          Tryb demo: auto-akceptacja
-        </label>
-      </div>
-    </section>
+      <p class="mini-nav">
+        <a href="#v-filters">↘ Filtry</a> •
+        <a href="#v-list">↘ Lista zadań</a>
+      </p>
 
-    <section class="controls">
-      <div class="chips">
-        <button id="v-chipAll" class="chip chip-active">Wszystkie <span id="v-countAll" class="count">0</span></button>
-        <button id="v-chipOpen" class="chip chip-open">Wolne <span id="v-countOpen" class="count">0</span></button>
-        <button id="v-chipTaken" class="chip chip-taken">W trakcie <span id="v-countTaken" class="count">0</span></button>
-        <button id="v-chipReview" class="chip chip-review">Do weryf. <span id="v-countReview" class="count">0</span></button>
-        <button id="v-chipApproved" class="chip chip-approved">Zatwierdzone <span id="v-countApproved" class="count">0</span></button>
-        <button id="v-chipMine" class="chip chip-mine">Moje zadania</button>
-      </div>
-
-      <div class="controls__row">
-        <input id="v-search" type="search" placeholder="Szukaj (tytuł / koń / miejsce)" />
-        <select id="v-type" title="Typ zadania">
-          <option value="">Wszystkie typy</option>
-          <option value="porządki">Prace porządkowe</option>
-          <option value="siodłanie">Przygotowanie do Jazdy</option>
-          <option value="wyprowadzenie">Wyprowadzenie Stada</option>
-          <option value="sprowadzenie">Sprowadzenie Stada</option>
-          <option value="rozsiodłanie">Rozsiodłanie</option>
-          <option value="lonżowanie">Lonżowanie</option>
-          <option value="klinika">Klinika</option>
-          <option value="zabieg">Zabieg</option>
-          <option value="dziennikarz">Dziennikarz / Kronikarz</option>
-          <option value="luzak">Luzak</option>
-        </select>
-        <div class="viewtog">
-          <button id="v-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
-          <button id="v-view-list" class="viewbtn" title="Lista">≣</button>
+      <div id="v-filters" class="toolbar">
+        <div class="chips">
+          <button id="v-chipAll" class="chip chip-active">Wszystkie <span id="v-countAll" class="badge small">0</span></button>
+          <button id="v-chipOpen" class="chip">Wolne <span id="v-countOpen" class="badge small">0</span></button>
+          <button id="v-chipTaken" class="chip">W trakcie <span id="v-countTaken" class="badge small">0</span></button>
+          <button id="v-chipReview" class="chip">Do weryf. <span id="v-countReview" class="badge small">0</span></button>
+          <button id="v-chipApproved" class="chip">Zatwierdzone <span id="v-countApproved" class="badge small">0</span></button>
+          <button id="v-chipMine" class="chip">Tylko moje</button>
+        </div>
+        <div class="right">
+          <label for="v-type">Typ
+            <select id="v-type">
+              <option value="">— wszystkie —</option>
+              <option value="siodłanie">Przygotowanie do Jazdy</option>
+              <option value="porządki">Prace porządkowe</option>
+              <option value="wyprowadzenie">Wyprowadzenie</option>
+              <option value="sprowadzenie">Sprowadzenie</option>
+              <option value="zabieg">Zabieg</option>
+            </select>
+          </label>
+          <input id="v-search" type="search" placeholder="Szukaj..." />
+          <button id="pointsHistory" class="btn ghost small">Historia punktów</button>
+          <button id="exportCsv" class="btn ghost small">Eksport CSV</button>
+          <button id="resetData" class="btn ghost small">Reset</button>
+          <button id="hardReset" class="btn ghost small">Hard reset</button>
         </div>
       </div>
-    </section>
 
-    <section id="v-list" class="grid"></section>
-
-    <section class="actions">
-      <button id="exportCsv" class="btn">Eksport CSV (moja aktywność)</button>
-      <button id="resetData" class="btn ghost">Reset danych (demo)</button>
-      <button id="hardReset" class="btn ghost">Twardy reset</button>
-    </section>
-  </section>
-
-  <!-- === ADMIN TAB === -->
-  <section id="tab-admin" class="tabpane hidden">
-    <section class="statusbar">
-      <div class="stat">
-        <span id="adminTodayLabel" class="label">Planowanie — </span>
+      <div class="score">
+        Moje punkty: <strong id="myPoints">0</strong> &nbsp; <span id="myHorseshoes"></span>
       </div>
-      <div class="statusbar__right">
-        <button id="a-print" class="btn small">Drukuj grafik</button>
-        <button id="a-generate" class="btn small">Wygeneruj grafik dnia</button>
-          <button id="a-refresh" class="btn small ghost">Odśwież</button>
-      </div>
+
+      <div id="v-list" class="list"></div>
     </section>
 
- <section class="controls compact">
-      <div class="controls__row stack">
-        <h3>Dodaj jeźdźca</h3>
-        <div class="grid2">
-  <label>Imię <input id="a-first" type="text" /></label>
-  <label>Nazwisko <input id="a-last" type="text" /></label>
-  <label>Telefon <input id="a-phone" type="tel" /></label>
-  <label>Email <input id="a-email" type="email" /></label>
-  <label>Typ jazdy
-    <select id="a-rideType">
-      <option value="jazda_grupowa">Jazda Grupowa</option>
-      <option value="jazda_indywidualna">Jazda Indywidualna</option>
-    </select>
-  </label>
-  <label>Poziom
-    <select id="a-level">
-      <option value="kłus">kłus</option>
-      <option value="kłus-galop">kłus-galop</option>
-      <option value="obóz">obóz</option>
-      <option value="teren">teren</option>
-      <option value="lonża">lonża (indyw.)</option>
-    </select>
-  </label>
-  <label>Koń
-    <select id="a-horse"></select>
-  </label>
-  <label>Data <input id="a-date" type="date" /></label>
-  <label>Godzina <input id="a-when" type="time" /></label>
-  <label>Instruktor
-    <select id="a-instructor"></select>
-  </label>
+    <!-- ======= RAPORTY ======= -->
+    <section id="tab-reports" class="hidden">
+      <h2 id="reportsTop">Raporty</h2>
 
-  <!-- przycisk w tej samej linii -->
-  <button id="a-addRider" class="btn small">Zapisz na jazdę</button>
-</div>
+      <p class="mini-nav">
+        <a href="#r-filters">↘ Zakres</a> •
+        <a href="#r-list">↘ Lista</a>
+      </p>
 
-      <div class="controls__row">
-        <label>Data grafiku <input id="a-day" type="date" /></label>
+      <div id="r-filters" class="toolbar">
+        <div class="left">
+          <label for="r-from">Od
+            <input id="r-from" type="date" />
+          </label>
+          <label for="r-to">Do
+            <input id="r-to" type="date" />
+          </label>
+          <label for="r-status">Status
+            <select id="r-status">
+              <option value="">— wszystkie —</option>
+              <option value="open">Wolne</option>
+              <option value="taken">W trakcie</option>
+              <option value="to_review">Do weryf.</option>
+              <option value="approved">Zatwierdzone</option>
+              <option value="rejected">Odrzucone</option>
+            </select>
+          </label>
+          <label for="r-group">Grupowanie
+            <select id="r-group">
+              <option value="none">Brak</option>
+              <option value="vol">Wolontariusz</option>
+              <option value="type">Typ</option>
+              <option value="horse">Koń</option>
+            </select>
+          </label>
+        </div>
+        <div class="right">
+          <button id="r-view-list" class="btn small view-active">Lista</button>
+        </div>
       </div>
+
+      <div id="r-list" class="list"></div>
     </section>
 
-    <section id="a-cohorts" class="grid"></section>
+    <!-- ======= ADMIN ======= -->
+    <section id="tab-admin" class="">
+      <h2 id="adminTop">Administracja</h2>
 
-    <section class="schedule card" id="scheduleCard">
-      <div class="title">
+      <p class="mini-nav">
+        <a href="#a-form">↘ Zapisy</a> •
+        <a href="#a-schedule">↘ Grafik dnia</a>
+      </p>
+
+      <div class="toolbar">
+        <div class="left">
+          <label for="a-day">Dzień grafiku
+            <input id="a-day" type="date" />
+          </label>
+          <span id="adminTodayLabel" class="muted">Planowanie — —</span>
+        </div>
+        <div class="right">
+          <button id="a-generate" class="btn small">Generuj grafik</button>
+          <button id="a-refresh" class="btn ghost small">Odśwież</button>
+          <button id="a-print" class="btn ghost small">Drukuj</button>
+        </div>
+      </div>
+
+      <!-- FORM: zapisy na jazdę / zabieg -->
+      <div id="a-form" class="panel">
+        <h3>Nowy zapis</h3>
+        <div class="grid g3">
+          <label for="a-first">Imię
+            <input id="a-first" type="text" required />
+          </label>
+          <label for="a-last">Nazwisko
+            <input id="a-last" type="text" required />
+          </label>
+          <label for="a-phone">Telefon
+            <input id="a-phone" type="tel" />
+          </label>
+
+          <label for="a-email">E-mail
+            <input id="a-email" type="email" />
+          </label>
+
+          <label for="a-rideType">Rodzaj
+            <select id="a-rideType">
+              <option value="jazda_grupowa" selected>Jazda grupowa</option>
+              <option value="jazda_indywidualna">Jazda indywidualna</option>
+              <option value="zabieg">Zabieg</option>
+            </select>
+          </label>
+
+          <label for="a-level">Poziom / typ
+            <input id="a-level" type="text" placeholder="np. kłus-galop / szczepienia" />
+          </label>
+
+          <label for="a-horse">Koń
+            <select id="a-horse"></select>
+          </label>
+
+          <label for="a-date">Data
+            <input id="a-date" type="date" />
+          </label>
+
+          <label for="a-when">Godzina
+            <input id="a-when" type="time" />
+          </label>
+
+          <label for="a-instructor">Instruktor
+            <select id="a-instructor"></select>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="a-addRider" class="btn">Dodaj zapis</button>
+        </div>
+      </div>
+
+      <!-- GRAFIK DNIA -->
+      <div id="a-schedule" class="panel">
         <h3 id="schedTitle">Grafik dnia</h3>
-      </div>
-      <div id="scheduleGrid" class="sched-grid"></div>
-    </section>
-  </section>
-
-  <!-- === REPORTS TAB === -->
-  <section id="tab-reports" class="tabpane hidden">
-    <section class="statusbar">
-      <div class="stat"><span class="label">Raporty — podsumowanie</span></div>
-      <div class="statusbar__right">
-        <button id="r-export" class="btn small">Eksport CSV</button>
-      </div>
-    </section>
-
-    <section class="controls">
-      <div class="controls__row">
-        <label>Od <input id="r-from" type="date" /></label>
-        <label>Do <input id="r-to" type="date" /></label>
-        <select id="r-group">
-          <option value="none">Bez grupowania</option>
-          <option value="user">Po wolontariuszu</option>
-          <option value="type">Po typie zadania</option>
-          <option value="horse">Po koniu</option>
-        </select>
-        <select id="r-status">
-          <option value="">Status: wszystkie</option>
-          <option value="open">Wolne</option>
-          <option value="taken">W trakcie</option>
-          <option value="to_review">Do weryfikacji</option>
-          <option value="approved">Zatwierdzone</option>
-          <option value="rejected">Odrzucone</option>
-        </select>
-        <div class="viewtog">
-          <button id="r-view-cards" class="viewbtn view-active" title="Kafelki">▦</button>
-          <button id="r-view-list" class="viewbtn" title="Lista">≣</button>
+        <div class="sched-wrap">
+          <div id="scheduleGrid" class="grid sched-row"></div>
         </div>
       </div>
     </section>
 
-    <section id="r-list" class="grid"></section>
+  </main>
+
+  <!-- ======= MODALE ======= -->
+  <section id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+      <header class="modal-head">
+        <h3 id="modalTitle">Szczegóły</h3>
+        <button id="closeModal" class="icon">×</button>
+      </header>
+      <div id="modalBody" class="modal-body"></div>
+      <footer id="modalFoot" class="modal-foot"></footer>
+    </div>
   </section>
-</main>
 
-<!-- MODAL — szczegóły -->
-<div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-  <div class="modal__card">
-    <div class="modal__head">
-      <h2 id="modalTitle">Szczegóły</h2>
-      <button id="closeModal" class="iconbtn" aria-label="Zamknij">×</button>
+  <section id="confirm" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-box">
+      <header class="modal-head">
+        <h3 id="confirmTitle">Potwierdź</h3>
+      </header>
+      <div id="confirmBody" class="modal-body">Na pewno?</div>
+      <footer class="modal-foot">
+        <button id="confirmCancel" class="btn ghost">Anuluj</button>
+        <button id="confirmOk" class="btn">OK</button>
+      </footer>
     </div>
-    <div id="modalBody" class="modal__body"></div>
-    <div class="modal__foot" id="modalFoot"></div>
-  </div>
-</div>
+  </section>
 
-<!-- MODAL — POTWIERDZENIE (in-app) -->
-<div id="confirm" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-  <div class="modal__card">
-    <div class="modal__head">
-      <h2 id="confirmTitle">Potwierdź</h2>
-    </div>
-    <div id="confirmBody" class="modal__body"></div>
-    <div class="modal__foot">
-      <button id="confirmCancel" class="btn ghost">Nie</button>
-      <button id="confirmOk" class="btn">Tak</button>
-    </div>
-  </div>
-</div>
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
 
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <!-- ======= FOOTER ======= -->
+  <footer class="wrap muted center">
+    EquiFlow — MVP • v1.5
+  </footer>
 
-<footer class="foot">
-  <small>© EquiFlow MVP v1.5 • Instruktor / Wolontariusz / Administracja / Raporty</small>
-</footer>
-
-<script src="app-v1_5.js" defer></script>
+  <script src="app-v1_5.js"></script>
 </body>
 </html>
