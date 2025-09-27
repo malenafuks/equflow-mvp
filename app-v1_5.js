@@ -119,6 +119,9 @@ function task(title, type, extra={}){
     arena: extra.arena || null,
     horse: extra.horse || null,
     rider: extra.rider || null,
+    riderId: extra.riderId || null,       // DODAJ
+    instructorId: extra.instructorId || null, // DODAJ
+
     groupLevel: extra.groupLevel || null,
     indivLevel: extra.indivLevel || null,
     when: extra.when || null,
@@ -783,17 +786,78 @@ function onAdminAddRider(){
   const last  = $("#a-last").value.trim();
   const phone = $("#a-phone").value.trim();
   const email = $("#a-email").value.trim();
-
-  const rideType = $("#a-rideType").value; // także inne zadania!
-  const level = $("#a-level").value;       // może być pusty dla nie-jazd
+  const rideType = $("#a-rideType").value;
+  const level = $("#a-level").value;
   const horse = $("#a-horse").value;
   const dateISO = $("#a-date").value || todayISO();
   const when = $("#a-when").value;
   const instructorId = $("#a-instructor").value;
 
-  if(["jazda_grupowa","jazda_indywidualna","zabieg"].includes(rideType)){
-    if(!first || !last || !when || !dateISO){ alert("Uzupełnij: imię, nazwisko, datę i godzinę."); return; }
+  if(!first || !last || !when || !dateISO){
+    alert("Uzupełnij: imię, nazwisko, datę i godzinę.");
+    return;
   }
+
+  // 1) Zapis do "riders" (to z tego budujemy grafik)
+  const riderObj = {
+    id: uid(),
+    first, last,
+    tel: phone,
+    email,
+    level,
+    dateISO,
+    when,
+    instructorId,
+    horse
+  };
+  state.riders.push(riderObj);
+
+  // 2) Utworzenie ODGADZĄCEGO się zadania (task) z linkiem riderId/instructorId
+  let t;
+  if (rideType === "jazda_grupowa"){
+    t = task(`Jazda Grupowa — ${level}`, "jazda_grupowa", {
+      horse,
+      rider: `${first} ${last}`,
+      riderId: riderObj.id,
+      instructorId,
+      when,
+      dateISO,
+      points: 0,
+      groupLevel: level
+    });
+  } else if (rideType === "jazda_indywidualna"){
+    t = task(`Jazda Indywidualna — ${level}`, "jazda_indywidualna", {
+      horse,
+      rider: `${first} ${last}`,
+      riderId: riderObj.id,
+      instructorId,
+      when,
+      dateISO,
+      points: 0,
+      indivLevel: level
+    });
+  } else {
+    // Zabieg – bez riderId (bo nie musi być zapisany jeździec), ale normalnie trafia do listy zadań
+    t = task(`Zabieg — ${level} • ${horse}`, "zabieg", {
+      horse,
+      when,
+      dateISO,
+      points: 2,
+      procType: level
+    });
+  }
+
+  state.tasks.unshift(t);
+  persistAll();
+  renderAll();
+  flash("#a-addRider", "Dodano zapis/zadanie");
+}
+
+  state.tasks.unshift(t);
+  persistAll();
+  renderAll();
+  flash("#a-addRider","Dodano zapis/zadanie");
+}
 
   // Jeśli to jazda/zabieg — twórz ridera (dla grafiku)
   if (rideType==="jazda_grupowa" || rideType==="jazda_indywidualna"){
@@ -869,13 +933,35 @@ function renderAdmin(){
       if(rs.length===0){
         slot.innerHTML = `<div class="rider muted">—</div>`;
       }else{
-        slot.innerHTML = rs.map(r=>`<div class="rider">${escapeHTML(r.first)} ${escapeHTML(r.last)} • ${escapeHTML(r.horse||"—")} • ${escapeHTML(r.level)}</div>`).join("");
+       slot.innerHTML = rs.map(r=>`
+  <div class="rider" data-rid="${r.id}">
+    ${escapeHTML(r.first)} ${escapeHTML(r.last)} • ${escapeHTML(r.horse||"—")} • ${escapeHTML(r.level)}
+    <button class="rider-del" title="Usuń z grafiku" aria-label="Usuń" data-rid="${r.id}">×</button>
+  </div>
+`).join("");
       }
       row.appendChild(slot);
     });
 
     grid.appendChild(row);
   });
+     // Delegacja kliknięć w "×" – usuń wpis z grafiku i powiązane taski
+  grid.onclick = (ev)=>{
+    const btn = ev.target.closest(".rider-del");
+    if(!btn) return;
+    const rid = btn.dataset.rid;
+    if(!rid) return;
+
+    // 1) Usuń jeźdźca z grafiku
+    state.riders = state.riders.filter(r => r.id !== rid);
+
+    // 2) Usuń wszystkie zadania powiązane z tym riderem
+    state.tasks = state.tasks.filter(t => t.riderId !== rid);
+
+    persistAll();
+    renderAll();
+  };
+
 }
 function ensureRotateHint(){
   const wrap = $(".sched-wrap");
