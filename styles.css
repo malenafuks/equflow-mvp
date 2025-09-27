@@ -144,3 +144,17 @@ button,input,select,textarea{font:inherit;color:inherit}
   .card{box-shadow:none;border-color:#000}
   .sched-slot{border-color:#000}
 }
+.rider { position: relative; padding-right: 22px; }
+.rider-del{
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  line-height: 1;
+  opacity: .55;
+  cursor: pointer;
+}
+.rider-del:hover{ opacity: .9; }
