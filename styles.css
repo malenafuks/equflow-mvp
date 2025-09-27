@@ -21,9 +21,17 @@
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
-button,input,select{font:inherit;color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
 
-/* tabs */
+.wrap{max-width:var(--max);margin:14px auto 18px;padding:0 16px}
+
+/* top tabs (sticky) */
+#tabsNav{
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(6px);
+  background: rgba(255,255,255,.9);
+  border-bottom: 1px solid #ececec;
+}
 .tabs{display:flex;gap:8px;max-width:var(--max);margin:10px auto 0;padding:0 16px}
 .tab{padding:10px 14px;border-radius:12px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
 .tab[data-tab="admin"]{background:#e8f7ee;border-color:#bbf7d0}
@@ -33,12 +41,9 @@ button,input,select{font:inherit;color:inherit}
 .tab-active{outline:2px solid #c7d2fe}
 .tabpane.hidden{display:none}
 
-.wrap{max-width:var(--max);margin:14px auto 18px;padding:0 16px}
-
 /* chips */
-.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips,.i-chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:none;cursor:pointer;background:#eef2ff;color:#3730a3;padding:8px 12px;border-radius:999px;display:flex;gap:8px;align-items:center}
-.chip .count{background:#fff;padding:0 8px;border-radius:999px;border:1px solid #e5e7eb;color:#111827}
 .chip-active{outline:2px solid #c7d2fe}
 .chip-open{background:var(--open);color:var(--open-b)}
 .chip-taken{background:var(--taken);color:var(--taken-b)}
@@ -46,7 +51,26 @@ button,input,select{font:inherit;color:inherit}
 .chip-approved{background:var(--approved);color:var(--approved-b)}
 .chip-mine{background:#e5e7eb;color:#111827}
 
-/* lists / cards */
+/* inputs */
+.controls{margin:16px 0;display:flex;flex-direction:column;gap:10px}
+.controls__row{display:flex;gap:10px;flex-wrap:wrap}
+.controls input[type="search"], .controls select, .controls input[type="text"], .controls input[type="time"], .controls input[type="date"], .controls input[type="number"], .controls input[type="tel"], .controls input[type="email"], .controls textarea{padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;flex:1}
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+
+/* Uwagi większe (desktop) */
+#i-notes, #a-notes{
+  min-height:84px;
+}
+@media (min-width:900px){
+  #i-notes, #a-notes{
+    min-height:120px;
+    grid-column: 1 / -1;
+    margin-inline: auto;
+    max-width: 900px;
+  }
+}
+
+/* cards */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--gap)}
 .list{display:block}
 .list .card{display:grid;grid-template-columns:1fr auto;align-items:center}
@@ -73,24 +97,16 @@ button,input,select{font:inherit;color:inherit}
 .card.ride{border-color:var(--ride-b);background:var(--ride)}
 .card.future{opacity:.72}
 
-/* buttons / misc */
+/* actions / misc */
 .kit{display:flex;justify-content:space-between;gap:10px;align-items:center}
 .meta{color:var(--muted);font-size:.92rem}
 .btn{padding:10px 14px;border-radius:12px;border:1px solid #e5e7eb;background:var(--accent);color:var(--accent-ink);cursor:pointer}
 .btn.small{padding:6px 10px}
 .btn.ghost{background:#fff}
 
-/* sticky tabs */
-#tabsNav{
-  position: sticky; top: 0; z-index: 50;
-  backdrop-filter: blur(6px);
-  background: rgba(255,255,255,.9);
-  border-bottom: 1px solid #ececec;
-}
-
 /* === ADMIN: GRAFIK (GRID) === */
-.sched-wrap{ overflow-x:auto; }
-.sched-grid{ display:block; } /* sam kontener */
+.sched-wrap{ overflow-x:auto; position:relative; }
+.sched-grid{ display:block; } /* kontener */
 .sched-row{ display:grid; grid-template-columns: 120px repeat(var(--sched-cols,5), minmax(160px,1fr)); }
 .sched-row.header{ position: sticky; top: 0; z-index: 3; background: var(--panel,#fff); border-bottom:1px solid #e5e7eb; }
 .sched-time{ position: sticky; left: 0; z-index: 2; background: var(--panel,#fff); border-right: 1px solid #eee; padding:10px 12px; font-weight:700; }
@@ -98,34 +114,33 @@ button,input,select{font:inherit;color:inherit}
 .sched-row .sched-time{ align-self:stretch; display:flex; align-items:center; }
 .sched-row.header .sched-slot{ font-weight:600; background:#f8fafc; }
 
+/* overlay „obróć telefon” przy pionie */
+.rotate-hint{
+  display:none;
+  position:absolute; inset:0; background:rgba(255,255,255,.9);
+  align-items:center; justify-content:center; text-align:center;
+  padding:20px; font-weight:600; color:#334155; z-index:5;
+  border: 1px dashed #cbd5e1; border-radius: 12px;
+}
+@media (orientation:portrait) and (max-width: 600px){
+  .rotate-hint{ display:flex; }
+}
+
 /* wpis jeźdźca */
 .rider{ font-size:.95rem; padding:6px 0; border-bottom:1px dashed #e5e7eb; }
 .rider:last-child{ border-bottom:none; }
 .rider.muted{ color: var(--muted,#666); }
 
-@media (max-width: 480px){
-  .sched-row{ grid-template-columns: 96px repeat(var(--sched-cols,5), minmax(140px,1fr)); }
-}
+/* RAPORTY – tabela */
+.table{ width:100%; border-collapse: collapse; background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+.table th, .table td{ padding:10px 12px; border-bottom:1px solid #e5e7eb; text-align:left; font-size:.95rem; }
+.table th{ background:#f8fafc; font-weight:700; }
 
 /* print */
 @media print{
-  .topbar,.tabs,.controls,.statusbar__right,.actions,#toast,.modal{display:none !important}
+  #tabsNav,.tabs,.controls,.statusbar__right,.actions,#toast,.modal{display:none !important}
   body{background:#fff;color:#000}
   .wrap{max-width:none;margin:0;padding:0}
   .card{box-shadow:none;border-color:#000}
   .sched-slot{border-color:#000}
 }
-
-/* wyróżnienie zadań do przypisania */
-.card.needs-assign{
-  border: 2px dashed var(--gold,#FFD700);
-  animation: ef-pulse 2.8s ease-in-out infinite;
-}
-@keyframes ef-pulse{
-  0%,100%{ box-shadow: 0 0 0 0 rgba(255,215,0,.0); }
-  50%{ box-shadow: 0 0 0 6px rgba(255,215,0,.18); }
-}
-
-/* pasek chipów instruktora */
-.i-chips{ display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px; }
-.i-chips .chip{ cursor:pointer; }
