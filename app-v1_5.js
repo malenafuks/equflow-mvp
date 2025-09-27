@@ -1,8 +1,10 @@
 /* EquiFlow v1.5 — pełny skrypt (app-v1_5.js)
    - Dymki przy dodawaniu
    - Poprawka dodawania "Przygotowanie" po dodaniu jazdy
-   - Instruktor: lista + compact
-   - Admin: zapis na jazdę + grafik dnia
+   - Instruktor: lista + compact, filtry statusów, sort, priorytet "do przypisania"
+   - Admin: zapis na jazdę + grafik dnia (mobile grid var)
+   - Zabiegi rozszerzone (kowal/weterynarz itd.)
+   - Tytuł ≠ opis (Uwagi w comments)
 */
 
 /* =================== Storage keys =================== */
@@ -156,14 +158,14 @@ document.addEventListener("DOMContentLoaded", () => {
           ...ui,
           a: { ...(ui.a || {}), day: today },
           v: { ...(ui.v||{}), view: "list" },
-          i: { ...(ui.i||{}), view: "list" },
+          i: { ...(ui.i||{}), view: "list", status: ui.i?.status || "all", future: !!ui.i?.future, sort: ui.i?.sort || "newest" },
           r: { ...(ui.r||{}), view: "list", from: ui.r?.from || today, to: ui.r?.to || today }
         };
       }
       return {
         tab: "admin",
         v: { status:"all", onlyMine:false, type:"", view:"list", search:"" },
-        i: { view:"list" },
+        i: { view:"list", status:"all", future:false, sort:"newest" },
         r: { view:"list", from: today, to: today, group:"none", status:"" },
         a: { day: today }
       };
@@ -213,6 +215,15 @@ document.addEventListener("DOMContentLoaded", () => {
     persistAll(); renderAll(); flash("#i-createDefaults","Dodano zestaw");
   });
 
+  // Chipy statusów Instruktora
+  $("#i-chipAll")?.addEventListener("click", ()=>{ state.ui.i.status="all"; setIChips("all"); renderInstructor(); });
+  $("#i-chipOpen")?.addEventListener("click", ()=>{ state.ui.i.status="open"; setIChips("open"); renderInstructor(); });
+  $("#i-chipTaken")?.addEventListener("click", ()=>{ state.ui.i.status="taken"; setIChips("taken"); renderInstructor(); });
+  $("#i-chipReview")?.addEventListener("click", ()=>{ state.ui.i.status="to_review"; setIChips("review"); renderInstructor(); });
+  $("#i-chipApproved")?.addEventListener("click", ()=>{ state.ui.i.status="approved"; setIChips("approved"); renderInstructor(); });
+  $("#i-chipRejected")?.addEventListener("click", ()=>{ state.ui.i.status="rejected"; setIChips("rejected"); renderInstructor(); });
+  $("#i-chipFuture")?.addEventListener("click", ()=>{ state.ui.i.future = !state.ui.i.future; $("#i-chipFuture").classList.toggle("chip-active", state.ui.i.future); renderInstructor(); });
+
   /* --------- WOLONTARIUSZ --------- */
   bindVolunteerUI();
 
@@ -223,13 +234,13 @@ document.addEventListener("DOMContentLoaded", () => {
   initAdmin();
 
   /* --------- Start --------- */
-    // Jeśli w URL jest #kotwica, aktywuj odpowiednią zakładkę i przewiń
+  // Obsługa #anchor w URL
   const hash = (location.hash || "").toLowerCase();
   const hashToTab = {
-    "#adminTop":"admin", "#a-form":"admin", "#a-schedule":"admin",
-    "#instructorTop":"instructor", "#i-form":"instructor", "#i-list":"instructor",
-    "#volunteerTop":"volunteer", "#v-filters":"volunteer", "#v-list":"volunteer",
-    "#reportsTop":"reports", "#r-filters":"reports", "#r-list":"reports"
+    "#admintop":"admin", "#a-form":"admin", "#a-schedule":"admin",
+    "#instructortop":"instructor", "#i-form":"instructor", "#i-list":"instructor",
+    "#volunteertop":"volunteer", "#v-filters":"volunteer", "#v-list":"volunteer",
+    "#reportstop":"reports", "#r-filters":"reports", "#r-list":"reports"
   };
   if (hash && hashToTab[hash]){
     switchTab(hashToTab[hash]);
@@ -268,22 +279,21 @@ function ensureDailyTasksForToday(){
 }
 
 /* =================== Views switch =================== */
+function setViewActive(prefix, which){
+  const map = { i:{cards:"#i-view-cards",list:"#i-view-list"}, v:{cards:"#v-view-cards",list:"#v-view-list"}, r:{cards:"#r-view-cards",list:"#r-view-list"} };
+  const m = map[prefix];
+  $(m.cards)?.classList.toggle("view-active", which==="cards");
+  $(m.list)?.classList.toggle("view-active", which==="list");
+}
 function switchTab(key){
   state.ui.tab = key;
-
-  // UI: przełącz przyciski
   $$(".tab").forEach(b=>b.classList.toggle("tab-active", b.dataset.tab===key));
-
-  // UI: pokaż/ukryj sekcje
   $("#tab-instructor").classList.toggle("hidden", key!=="instructor");
   $("#tab-volunteer").classList.toggle("hidden", key!=="volunteer");
   $("#tab-reports").classList.toggle("hidden", key!=="reports");
   $("#tab-admin").classList.toggle("hidden", key!=="admin");
-
-  // zapisz UI
   save(LS.UI, state.ui);
-
-  // NOWE: skocz do nagłówka aktywnej sekcji (kotwica)
+  // skok do nagłówka sekcji
   const anchors = {
     admin: "#adminTop",
     instructor: "#instructorTop",
@@ -323,7 +333,16 @@ function renderDynamicFields(){
 
   if (type==="prep"){ append(c, date, time, horse, rider); }
   else if (type==="zabieg"){
-    const proc = inputSelect("Typ zabiegu","i-proc",["Masaż","Derka magnetyczna","Kopyta — pielęgnacja","Kąpiel","Stretching"]);
+    const proc = inputSelect("Typ zabiegu","i-proc",[
+      "Kowal — werkowanie/podkucie",
+      "Weterynarz — szczepienia",
+      "Weterynarz — zęby",
+      "Weterynarz — badania okresowe",
+      "Kopyta — pielęgnacja",
+      "Wcierki chłodzące",
+      "Wcierki rozgrzewające",
+      "Golenie"
+    ]);
     append(c, date, horse, proc);
   }
   else if (type==="wyprowadzenie" || type==="sprowadzenie" || type==="rozsiodłanie"){ append(c, date, time); }
@@ -335,13 +354,21 @@ function inputTime(label, id){ const el=document.createElement("label"); el.inne
 function inputSelect(label,id,arr){ const el=document.createElement("label"); el.innerHTML=`${label}<select id="${id}">${arr.map(v=>`<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join("")}</select>`; return el; }
 function append(parent,...children){ children.forEach(ch=>parent.appendChild(ch)); }
 
+function makeTitle(tp, data){
+  if(tp==="jazda_grupowa")      return `Jazda Grupowa — ${data.groupLevel||"—"} • ${data.horse||"—"} • ${data.rider||"—"}`;
+  if(tp==="jazda_indywidualna") return `Jazda Indywidualna — ${data.indivLevel||"—"} • ${data.horse||"—"} • ${data.rider||"—"}`;
+  if(tp==="prep")               return `Przygotowanie — ${data.horse||"—"} • ${data.rider||"—"}`;
+  if(tp==="zabieg")             return `Zabieg — ${data.procType||"—"} • ${data.horse||"—"}`;
+  return typeLabel(tp);
+}
+
 async function addInstructorTask(){
   if (!$("#i-date")) renderDynamicFields();
 
   const tp = $("#i-taskType").value;
   const points = clamp(+($("#i-points").value||2), 0, 4);
   const arena = ($("#i-place").value||"").trim() || null;
-  const title = ($("#i-title").value||"").trim();
+  const title = ($("#i-title").value||"").trim(); // opcjonalny override
 
   const dateISO = $("#i-date")?.value || todayISO();
   const when = $("#i-when")?.value || null;
@@ -350,36 +377,55 @@ async function addInstructorTask(){
   const groupLevel = $("#i-level-group")?.value || null;
   const indivLevel = $("#i-level-indiv")?.value || null;
   const procType = $("#i-proc")?.value || null;
+  const notes = ($("#i-notes")?.value||"").trim();
 
   let t;
+
   if (tp==="prep"){
     if(!horse || !rider || !when){ toastMsg("Uzupełnij: koń, jeździec, godzina"); return; }
-    t = task(title||`Przygotowanie — ${horse} dla ${rider}`, "prep", {arena, horse, rider, when, dateISO, points});
-  } else if (tp==="zabieg"){
+    t = task(title||makeTitle(tp,{horse,rider,when}), "prep",
+      {arena, horse, rider, when, dateISO, points, comments: notes});
+  }
+  else if (tp==="zabieg"){
     if(!horse || !procType){ toastMsg("Dla zabiegu: wybierz konia i typ zabiegu"); return; }
-    t = task(title||`Zabieg — ${procType} (${horse})`, "zabieg", {arena, horse, when, dateISO, points, procType});
-  } else if (tp==="wyprowadzenie" || tp==="sprowadzenie" || tp==="rozsiodłanie"){
-    t = task(title||typeLabel(tp), tp, {arena, when, dateISO, points, daily:true});
-  } else if (tp==="jazda_grupowa"){
+    t = task(title||makeTitle(tp,{horse,procType}), "zabieg",
+      {arena, horse, when, dateISO, points, procType, comments: notes});
+  }
+  else if (tp==="wyprowadzenie" || tp==="sprowadzenie" || tp==="rozsiodłanie"){
+    t = task(title||typeLabel(tp), tp,
+      {arena, when, dateISO, points, daily:true, comments: notes});
+  }
+  else if (tp==="jazda_grupowa"){
     if(!when || !groupLevel || !horse || !rider){ toastMsg("Jazda grupowa: data, godzina, poziom, koń, jeździec"); return; }
-    t = task(title||`Jazda Grupowa — ${groupLevel}`, "jazda_grupowa", {arena, horse, rider, when, dateISO, points:0, groupLevel});
+    t = task(title||makeTitle(tp,{groupLevel,horse,rider}), "jazda_grupowa",
+      {arena, horse, rider, when, dateISO, points:0, groupLevel, comments: notes});
     state.tasks.unshift(t);
     persistAll();
     await createPrepPrompt(t);
-  } else if (tp==="jazda_indywidualna"){
+  }
+  else if (tp==="jazda_indywidualna"){
     if(!when || !indivLevel || !horse || !rider){ toastMsg("Jazda indywidualna: data, godzina, poziom, koń, jeździec"); return; }
-    t = task(title||`Jazda Indywidualna — ${indivLevel}`, "jazda_indywidualna", {arena, horse, rider, when, dateISO, points:0, indivLevel});
+    t = task(title||makeTitle(tp,{indivLevel,horse,rider}), "jazda_indywidualna",
+      {arena, horse, rider, when, dateISO, points:0, indivLevel, comments: notes});
     state.tasks.unshift(t);
     persistAll();
     await createPrepPrompt(t);
-  } else { toastMsg("Nieobsługiwany typ"); return; }
+  }
+  else {
+    toastMsg("Nieobsługiwany typ"); return;
+  }
 
   if (tp!=="jazda_grupowa" && tp!=="jazda_indywidualna"){
     state.tasks.unshift(t);
     persistAll();
   }
 
-  $("#i-title").value = ""; $("#i-place").value = ""; $("#i-points").value = 2; if($("#i-when")) $("#i-when").value = "";
+  $("#i-title").value = "";
+  $("#i-place").value = "";
+  $("#i-points").value = 2;
+  if($("#i-when")) $("#i-when").value = "";
+  if($("#i-notes")) $("#i-notes").value = "";
+
   renderAll();
   flash("#i-add","Dodano zadanie");
 }
@@ -408,11 +454,41 @@ function renderInstructor(){
   const list = $("#i-list");
   if(!list) return;
 
-  list.className = "list";
+  // 1) Start od wszystkich
+  let items = state.tasks.slice();
 
-  const items = state.tasks.filter(t => t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type));
-  const other = state.tasks.filter(t => !(t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type)));
-  list.innerHTML = items.concat(other).map(cardHTMLInstructor).join("");
+  // 2) filtr statusu
+  if(state.ui.i?.status && state.ui.i.status!=="all"){
+    items = items.filter(t=> t.status===state.ui.i.status);
+  }
+
+  // 3) filtr future
+  if(state.ui.i?.future){
+    const today = todayISO();
+    items = items.filter(t=> t.dateISO > today);
+  }
+
+  // 4) sortowanie
+  items.sort((a,b)=>{
+    const sort = state.ui.i?.sort || "newest";
+    if(sort==="date"){
+      const d = (a.dateISO||"").localeCompare(b.dateISO||"");
+      if(d!==0) return d;
+      return (a.when||"").localeCompare(b.when||"");
+    }
+    if(sort==="status"){
+      return (a.status||"").localeCompare(b.status||"");
+    }
+    return (b.ts||0) - (a.ts||0);
+  });
+
+  // 5) priorytet: do przypisania
+  const needsAssign = items.filter(t=> t.status==="open" && !t.assignedTo);
+  const rest = items.filter(t=> !(t.status==="open" && !t.assignedTo));
+  items = needsAssign.concat(rest);
+
+  list.className = "list";
+  list.innerHTML = items.map(cardHTMLInstructor).join("");
 
   list.querySelectorAll(".openModal").forEach(b=>b.addEventListener("click", e=>{
     const id = e.currentTarget.dataset.id; const t = state.tasks.find(x=>x.id===id); if(t) openTaskModal(t);
@@ -422,6 +498,9 @@ function renderInstructor(){
   list.querySelectorAll(".assign").forEach(b=>b.addEventListener("click", onAssignVolunteer));
   list.querySelectorAll(".nudge").forEach(b=>b.addEventListener("click", onNudge));
   list.querySelectorAll(".delete").forEach(b=>b.addEventListener("click", onDeleteTask));
+
+  // Liczniki statusów (Instruktor)
+  setCountsInstructor(state.tasks);
 }
 function cardHTMLInstructor(t){
   const meta = [
@@ -438,10 +517,12 @@ function cardHTMLInstructor(t){
   const future = isFutureISO(t.dateISO);
   const ride = (t.type==="jazda_grupowa" || t.type==="jazda_indywidualna");
   const daily = t.daily || ["porządki","wyprowadzenie","sprowadzenie"].includes(t.type);
+  const needsAssign = (t.status==="open" && !t.assignedTo);
 
   const badges = [
     `<span class="badge-tag ${ride?'badge-ride':''} ${daily?'badge-daily':''}">${escapeHTML(typeLabel(t.type))}</span>`,
-    statusBadgeHTML(t.status)
+    statusBadgeHTML(t.status),
+    needsAssign ? `<span class="badge-tag badge-urgent">Do przypisania</span>` : ""
   ].join("");
 
   const actions = `
@@ -453,7 +534,7 @@ function cardHTMLInstructor(t){
   `;
 
   return `
-  <article class="card ${classByStatus(t.status)} ${ride?'ride':''} ${future?'future':''}" data-id="${t.id}">
+  <article class="card ${classByStatus(t.status)} ${ride?'ride':''} ${future?'future':''} ${needsAssign?'needs-assign':''}" data-id="${t.id}">
     <div class="title"><h3>${escapeHTML(t.title)}</h3></div>
     <div class="badges">${badges}</div>
     <div class="meta">${escapeHTML(meta)}</div>
@@ -665,16 +746,13 @@ function renderReports(){
 
 /* =================== ADMIN =================== */
 function initAdmin(){
-  // Ustaw dzisiejszą datę
   const day = todayISO();
   $("#a-day").value = state.ui.a?.day || day;
   $("#a-date").value = day;
   $("#adminTodayLabel").textContent = `Planowanie — ${isoToPL($("#a-day").value)}`;
 
-  // Selecty konie/instruktorzy
   refreshAdminSelects();
 
-  // Bindy
   $("#a-day").addEventListener("change", ()=>{
     state.ui.a.day = $("#a-day").value || todayISO();
     $("#adminTodayLabel").textContent = `Planowanie — ${isoToPL(state.ui.a.day)}`;
@@ -712,8 +790,10 @@ function onAdminAddRider(){
   let t;
   if(rideType==="jazda_grupowa"){
     t = task(`Jazda Grupowa — ${level}`, "jazda_grupowa", {horse, rider:`${first} ${last}`, when, dateISO, points:0, groupLevel:level});
-  }else{
+  }else if(rideType==="jazda_indywidualna"){
     t = task(`Jazda Indywidualna — ${level}`, "jazda_indywidualna", {horse, rider:`${first} ${last}`, when, dateISO, points:0, indivLevel:level});
+  }else{
+    t = task(`Zabieg — ${level} • ${horse}`, "zabieg", {horse, when, dateISO, points:2, procType:level});
   }
   state.tasks.unshift(t);
   persistAll();
@@ -723,7 +803,6 @@ function onAdminAddRider(){
 function renderAdmin(buildScheduleOnly=false){
   refreshAdminSelects();
 
-  // Grafik dnia na podstawie riderów z wybranego dnia
   const day = $("#a-day").value || todayISO();
   const riders = state.riders.filter(r=>r.dateISO===day);
 
@@ -740,6 +819,8 @@ function renderAdmin(buildScheduleOnly=false){
   const title = $("#schedTitle");
   title.textContent = `Grafik dnia — ${isoToPL(day)}`;
   grid.innerHTML = "";
+  // ustal liczbę kolumn (CSS var)
+  grid.style.setProperty("--sched-cols", String(state.instructors.length));
 
   // Header row
   const header = document.createElement("div");
@@ -845,6 +926,15 @@ function setCounts(prefix, items){
     $("#v-countApproved").textContent = by.approved||0;
   }
 }
+function setCountsInstructor(items){
+  const by = items.reduce((a,t)=>{ a.all++; a[t.status]=(a[t.status]||0)+1; return a; }, {all:0});
+  $("#i-countAll").textContent = by.all||0;
+  $("#i-countOpen").textContent = by.open||0;
+  $("#i-countTaken").textContent = by.taken||0;
+  $("#i-countReview").textContent = by.to_review||0;
+  $("#i-countApproved").textContent = by.approved||0;
+  $("#i-countRejected").textContent = by.rejected||0;
+}
 function exportCSV(){
   const me = (state.volunteer.name||"").trim();
   const rows = [["Data","Godzina","Tytuł","Koń","Miejsce","Status","Punkty"]];
@@ -877,4 +967,4 @@ function persistAll(){
 }
 
 /* ================ Dev marker ================ */
-console.log("EquiFlow v1.5 – pełny app-v1_5.js załadowany.");
+console.log("EquiFlow v1.5 – pełny app-v1_5.js (skonsolidowany) załadowany.");
