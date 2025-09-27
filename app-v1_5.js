@@ -1,4 +1,3 @@
-
 /* EquiFlow v1.5 — pełny skrypt (app-v1_5.js)
    - Dymki przy dodawaniu
    - Poprawka dodawania "Przygotowanie" po dodaniu jazdy
@@ -224,7 +223,20 @@ document.addEventListener("DOMContentLoaded", () => {
   initAdmin();
 
   /* --------- Start --------- */
-  switchTab(state.ui.tab);
+    // Jeśli w URL jest #kotwica, aktywuj odpowiednią zakładkę i przewiń
+  const hash = (location.hash || "").toLowerCase();
+  const hashToTab = {
+    "#adminTop":"admin", "#a-form":"admin", "#a-schedule":"admin",
+    "#instructorTop":"instructor", "#i-form":"instructor", "#i-list":"instructor",
+    "#volunteerTop":"volunteer", "#v-filters":"volunteer", "#v-list":"volunteer",
+    "#reportsTop":"reports", "#r-filters":"reports", "#r-list":"reports"
+  };
+  if (hash && hashToTab[hash]){
+    switchTab(hashToTab[hash]);
+    document.querySelector(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  } else {
+    switchTab(state.ui.tab);
+  }
   renderAll();
 });
 
@@ -256,20 +268,32 @@ function ensureDailyTasksForToday(){
 }
 
 /* =================== Views switch =================== */
-function setViewActive(prefix, which){
-  const map = { i:{cards:"#i-view-cards",list:"#i-view-list"}, v:{cards:"#v-view-cards",list:"#v-view-list"}, r:{cards:"#r-view-cards",list:"#r-view-list"} };
-  const m = map[prefix];
-  $(m.cards)?.classList.toggle("view-active", which==="cards");
-  $(m.list)?.classList.toggle("view-active", which==="list");
-}
 function switchTab(key){
   state.ui.tab = key;
+
+  // UI: przełącz przyciski
   $$(".tab").forEach(b=>b.classList.toggle("tab-active", b.dataset.tab===key));
+
+  // UI: pokaż/ukryj sekcje
   $("#tab-instructor").classList.toggle("hidden", key!=="instructor");
   $("#tab-volunteer").classList.toggle("hidden", key!=="volunteer");
   $("#tab-reports").classList.toggle("hidden", key!=="reports");
   $("#tab-admin").classList.toggle("hidden", key!=="admin");
+
+  // zapisz UI
   save(LS.UI, state.ui);
+
+  // NOWE: skocz do nagłówka aktywnej sekcji (kotwica)
+  const anchors = {
+    admin: "#adminTop",
+    instructor: "#instructorTop",
+    volunteer: "#volunteerTop",
+    reports: "#reportsTop"
+  };
+  const sel = anchors[key];
+  if (sel){
+    document.querySelector(sel)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 /* =================== Renders (global) =================== */
