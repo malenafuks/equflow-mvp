@@ -1,64 +1,98 @@
-# EquiFlow – MVP (v1.5 → v1.6 roadmap)
+📋 EquiFlow – Brief v1.6.7
+✅ Ukończone (v1.6.6)
 
-EquiFlow to aplikacja **do zarządzania stajnią i wolontariuszami**, tworzona jako MVP (mobile-first, HTML/CSS/JS + LocalStorage, bez backendu, hostowana na GitHub Pages).
+Blokada duplikatów: koń ↔ jeździec / godzina.
 
----
+Limit 3 jazd dziennie / koń → 4. i 5. = ostrzeżenie ⚠️, ale zapis możliwy.
 
-## 🚀 Stan obecny (v1.5)
+Instruktor ↔ grupy / godzina → blokada (instruktor tylko w jednej grupie o tej godzinie).
 
-- Repo: `equflow-mvp` (GitHub Pages).
-- **index.html**: zakładki (Admin, Instruktor, Wolontariusz, Raporty).
-- **styles.css**: jasny layout (beż/grafit), kafelki, sticky topbar, grafik admina z przewijaniem poziomym, overlay „obróć telefon”.
-- **app-v1_5.js**:
-  - Instruktor → dodaje jazdy (grupowe/indywidualne), zadania, zabiegi.
-  - Admin → CRUD zapisów, grafik dzienny, dropdowny z poziomami.
-  - Wolontariusz → podejmowanie zadań, zgłaszanie wykonania, historia punktów, eksport CSV.
-  - Raporty → filtrowanie po datach/statusach, eksport.
+Spójność poziomu w grupie → blokada (np. nie mieszamy kłus i teren w jednej grupie).
 
-✔ Synchronizacja jazd instruktora z grafikiem.  
-✔ Usuwanie jazdy = ❌ w grafiku.  
-✔ Kolorowe chipy/statusy, textarea większe na desktopie.  
+Usunięcie pola „Przypisz do”.
 
----
+Ograniczenie usuwania zaakceptowanych zadań.
 
-## 🛠 Planowane zmiany (v1.6+)
+Możliwość rezygnacji z zadania (wraca do puli).
 
-### Walidacje i ograniczenia
-- Koń ↔ jeździec / godzina (blokada duplikatów).  
-- Limit 3 jazd dziennie / koń (4. i 5. = ostrzeżenie ⚠️, ale zapis).  
-- Instruktor ↔ grupy / godzina (blokada).  
-- Spójność poziomu w grupie (blokada).
+Taby, toasty i walidacje – stabilne.
 
-### UI i funkcjonalności
-- Usunięcie pola „Przypisz do”.  
-- Ograniczenie usuwania zaakceptowanych zadań.  
-- Możliwość rezygnacji z zadania (wraca do puli).  
-- Wyszarzanie zadań wykonanych/zaakceptowanych.  
-- Ulepszenie grafiku (responsywność, szybkie akcje).  
+🛠 Do wdrożenia (v1.6.7)
+1. Synchronizacja usuwania (jazdy ↔ grafik)
 
----
+Już działa: usunięcie zadania w zakładce Instruktor usuwa je z grafiku.
 
-## 📅 Roadmapa
+Do zrobienia: usunięcie jazdy bezpośrednio z grafiku usuwa też wpis w zakładce Instruktor.
 
-- **v1.6 (najbliższa)** → walidacje, blokady, UI grafiku, rezygnacja z zadań.  
-- **v1.7** → import jeźdźców z Excela, grafik zabiegów/weterynarza, sklep za punkty.  
-- **v1.8** → wersja EN, pełne poprawki UI, raporty z flagami naruszeń.  
+2. Grafik zabiegów (nowy panel w Admin)
 
----
+Osobny widok: Grafik zabiegów.
 
-## 🧑‍💻 Tech notes
+Pola:
 
-- Mobile-first, HTML/CSS/JS, LocalStorage.
-- Walidacje w jednej warstwie usług (`validateRide()`).
-- Testy jednostkowe dla logiki (koń/godzina, limit, instruktor/godzina).
-- Raporty → flagi naruszeń (⚠️).
-- Import Excel → walidacja poprawności danych.
+zamiast „Poziom/typ” → Rodzaj zabiegu (dropdown),
 
----
+„Instruktor” → Instruktor Asystujący.
 
-## ▶️ Uruchomienie lokalne
+Logika:
 
-1. Sklonuj repo:
-   ```bash
-   git clone https://github.com/malenafuks/equflow-mvp.git
-   cd equflow-mvp
+Weterynarz ma kilka godzin i wiele koni,
+
+Instruktor Asystujący przypisany na całą sesję (nie może wtedy prowadzić jazd, ale może robić inne zadania).
+
+Zabiegi dodawane przez Admina i Instruktora.
+
+Zasada dodawania/usuwania → jak przy jazdach.
+
+3. Raporty – naprawa tabeli
+
+Raporty nie renderują się → poprawa generowania danych i widoku.
+
+4. Obsługa zadania „Dziennikarz / Kronikarz”
+
+Teraz: alert „typ nieobsługiwany”.
+
+Docelowo: traktować jak zwykłe zadanie (nie jazda, nie zabieg).
+
+5. Wyszarzanie wykonanych/zaakceptowanych zadań
+
+Zadania w listach zmieniają styl (opacity/szare tło).
+
+Dostępność: aria-disabled.
+
+Brak akcji niszczących.
+
+6. Ulepszenia grafiku
+
+Lepsza responsywność.
+
+Szybkie akcje (hover → usuń / edytuj / podgląd).
+
+7. Zakładka Sklep (beta)
+
+Produkty: gadżety stajenne (bluzy, koszulki).
+
+Produkty za punkty i za gotówkę.
+
+Możliwość zakupu udziału w jazdach/treningach/egzaminach.
+
+8. Profile użytkowników i role
+
+Obozowicze → pełny dostęp w trakcie obozu.
+
+Po obozie → zakładka Wolontariusz wyszarzona / przekierowanie.
+
+Zawsze dostęp do zakładki Sklep.
+
+Opcjonalnie: punkty za akcje marketingowe (np. konkursy SM).
+
+🚀 Milestone’y
+
+v1.6.7 (short-term)
+Naprawa raportów, synchronizacja usuwania, obsługa Kronikarza, wyszarzanie zadań.
+
+v1.7.0 (mid-term)
+Grafik zabiegów, responsywność grafiku, sklep (beta).
+
+v1.8.0 (long-term)
+Profile użytkowników, role i logowanie, system punktów (w tym marketingowe).
