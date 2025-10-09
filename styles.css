@@ -61,16 +61,18 @@ button,input,select,textarea{font:inherit;color:inherit}
 .grid.g2{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
 textarea{resize:vertical}
 
-/* Uwagi większe (desktop) */
-#i-notes, #a-notes{ min-height:84px; }
-@media (min-width:900px){
-  #i-notes, #a-notes{
-    min-height:120px;
-    grid-column: 1 / -1;
+/* Szczegóły – jedno pole tekstowe na pełną szerokość (1 linia) */
+#i-details, #a-details{
+  width: 100%;
+}
+@media (min-width: 700px){
+  #i-details, #a-details{
+    grid-column: 1 / -1; /* rozciągnij przez całą siatkę */
+    max-width: 1000px;
     margin-inline: auto;
-    max-width: 900px;
   }
 }
+
 
 /* cards/list */
 .list{display:block}
@@ -163,6 +165,8 @@ textarea{resize:vertical}
   pointer-events: none;
 }
 #toast.show{ opacity:1; }
+#toast.show{ pointer-events:auto; cursor:pointer; }
+
 
 /* Sticky toasty z walidacji (prawy górny róg) */
 .toast.sticky{
@@ -176,20 +180,127 @@ textarea{resize:vertical}
   padding: 10px 12px;
   border-radius: 12px;
   box-shadow: var(--shadow);
-  z-index: 300;
-  opacity: 1; /* zawsze widoczny */
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
-.toast.sticky .close{
-  background: transparent;
-  border: none;
-  color: inherit;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  opacity: .8;
-  padding: 0 4px;
+
+/* === Gold theme chip overrides (inactive white, active gold) === */
+/* ===== Scoreboard (Wolontariusz) ===== */
+.panel.scoreboard{
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+  padding:12px; margin:10px 0; background:#fffdf8; border:1px solid #e4c96f; border-radius:14px;
 }
-.toast.sticky .close:hover{ opacity: 1; }
+.score-main{ display:flex; align-items:center; gap:10px; }
+.score-main .icon-points{ width:28px; height:28px; }
+.score-title{ font-size:.82rem; color:#6b5b2a; }
+.score-value{ font-size:1.4rem; font-weight:800; }
+.score-side{ font-size:.95rem; color:#6b5b2a; }
+
+/* Dymek animacji „+punkty” (używany przez EF.animPoints) */
+.points-fly{
+  position:fixed; left:0; top:0; pointer-events:none; z-index:9999;
+  transform:translate(-50%,-50%); opacity:0;
+  display:flex; align-items:center; gap:6px;
+  font-weight:700;
+  background:rgba(255,255,255,.9);
+  padding:6px 10px; border-radius:12px;
+  box-shadow:var(--shadow);
+}
+.points-fly .icon-points{ width:20px; height:20px; }
+.points-fly .amount{ font-size:.9rem; color:#0f172a; }
+
+@keyframes ef-fly-up {
+  0%   { transform:translate(-50%,-30% ) scale(.8); opacity:0; }
+  15%  { opacity:1; }
+  60%  { transform:translate(-50%,-90%) scale(1.05); }
+  100% { transform:translate(-50%,-130%) scale(1); opacity:0; }
+}
+.points-fly.animating{ animation: ef-fly-up 900ms ease-out forwards; }
+
+
+/* ===== ARCHIWUM (kompakt pod listami) ===== */
+.archive-wrap{ margin-top:18px; opacity:.95; }
+.archive-title{ margin:8px 0; font-size:.95rem; color:var(--muted); font-weight:700; }
+.archive-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:8px 0;}
+.archive-controls{ display:flex; align-items:center; gap:8px; }
+.archive-toggle{
+  background:none; border:none; padding:4px 6px;
+  font-size:.82rem; text-decoration:underline; cursor:pointer; color:#334155;
+}
+.archive-toggle:hover{ opacity:.8; }
+.archive-filter{
+  font-size:.82rem; padding:4px 8px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; color:#334155;
+}
+
+/* Tabela „excel-like” z delikatnym wyglądem */
+.table.report-table{
+  width:100%; border-collapse:separate; border-spacing:0;
+  background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+  overflow:hidden; box-shadow:var(--shadow);
+}
+.table.report-table thead th{
+  position:sticky; top:0; background:#f8fafc;
+  border-bottom:1px solid #e5e7eb;
+  padding:10px 12px; text-align:left; font-weight:700; font-size:.92rem;
+}
+.table.report-table tbody td{
+  padding:10px 12px; border-bottom:1px solid #f1f5f9; font-size:.92rem;
+}
+.table.report-table tbody tr:hover{ background:#f9fafb; }
+.table.report-table tbody tr:last-child td{ border-bottom:none; }
+
+/* Kompaktowa gęstość + subtelniejsze kolory */
+.table.report-table.compact thead th,
+.table.report-table.compact tbody td{ padding:6px 8px; font-size:.82rem; }
+.table.report-table.compact tbody tr{ color:#475569; } /* slate-600 */
+
+/* Statusy (delikatne) */
+.table.report-table tr.st-approved td{ opacity:.9; }
+.table.report-table tr.st-to_review td{ font-style:italic; }
+
+.chips .chip .badge, .i-chips .chip .badge {
+  background:#fff; color:#3a2c15; border:1px solid #c7a23a;
+}
+.chips .chip.chip-active .badge, .i-chips .chip.chip-active .badge {
+  background:#e4c96f; color:#3a2c15; border:none;
+}
+/* ===== RAPORTY: tabela z obramowaniem (excel-like) ===== */
+.table.report-table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.table.report-table thead th{
+  position:sticky; top:0;
+  background:#f8fafc;
+  border-bottom:1px solid #e5e7eb;
+  padding:10px 12px; text-align:left; font-weight:700; font-size:.92rem;
+}
+.table.report-table tbody td{
+  padding:10px 12px; border-bottom:1px solid #f1f5f9; font-size:.92rem;
+}
+.table.report-table tbody tr:hover{
+  background:#f9fafb;
+}
+.table.report-table tbody tr:last-child td{
+  border-bottom:none;
+}
+/* Ikona punktów (podkowa — plik w katalogu głównym) */
+.icon-points{
+  width:28px;
+  height:28px;
+  background-image:url("horseshoe-gold.png");
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:contain;
+  vertical-align:-3px;
+  display:inline-block;
+}
+
+
+
+
+

@@ -59,6 +59,18 @@
         errors.push(`Limit 5 osób osiągnięty dla tego instruktora (${time}, poziom: ${level || "—"}).`);
       }
     }
+    // ===== NEW) BLOKADA: ten sam jeździec o tej samej godzinie na INNYM koniu =====
+    if (rider && time && date) {
+      const sameRiderSameTime = rides.filter(r =>
+        r.date === date &&
+        r.time === time &&
+        normStr(r.rider || "") === normStr(rider)
+      );
+      const conflict = sameRiderSameTime.find(r => normStr(r.horse || "") !== normStr(horse || ""));
+      if (conflict) {
+        errors.push(`Jeździec ${rider} ma już zapis na ${time} na koniu ${conflict.horse || "—"}. Nie można przypisać do innego konia o tej samej godzinie.`);
+      }
+    }
 
     // ===== 2) OSTRZEŻENIE: 4. (lub więcej) jazda tego konia w DANYM DNIU =====
     if (horse) {
@@ -82,16 +94,18 @@
   function showValidationMessages(res) {
     try {
       const toast = (msg, { danger = false } = {}) => {
-        const el = document.querySelector("#toast");
-        if (!el) { alert(msg); return; }
-        el.textContent = msg;
-        if (danger) { el.style.background = "#b91c1c"; el.style.color = "#fff"; }
-        el.classList.add("show");
-        setTimeout(() => {
-          el.classList.remove("show");
-          el.style.background = ""; el.style.color = "";
-        }, 2200);
-      };
+  if (typeof window.toastMsg === "function") { window.toastMsg(msg, { danger }); return; }
+  const el = document.querySelector("#toast");
+  if (!el) { alert(msg); return; }
+  el.textContent = msg;
+  if (danger) { el.style.background = "#b91c1c"; el.style.color = "#fff"; }
+  el.classList.add("show");
+  el.onclick = () => {
+    el.classList.remove("show");
+    el.style.background = ""; el.style.color = "";
+    el.onclick = null;
+  };
+};
 
       (res?.errors || []).forEach(m => toast(m, { danger: true }));
       (res?.warnings || []).forEach(m => toast(m));
