@@ -3,11 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EquiFlow v1.6.4 — MVP</title>
-  <link rel="stylesheet" href="styles.css?v=1.6.4" />
+  <title>EquiFlow v1.6.6 — MVP</title>
+  <link rel="stylesheet" href="styles.css?v=1.6.6" />
+  <!-- ✨ Nowy motyw – nadpisuje styles.css -->
+  <link rel="stylesheet" href="theme-equiflow-sand.css?v=1.6.7" />
   <meta name="color-scheme" content="light only" />
 </head>
 <body>
+
+
 
   <!-- ======= TOP NAV / TABS (sticky) ======= -->
   <header id="tabsNav" class="tabs">
@@ -26,7 +30,6 @@
   </header>
 
   <main class="wrap">
-
     <!-- ======= INSTRUKTOR ======= -->
     <section id="tab-instructor" class="hidden">
       <h2 id="instructorTop">Instruktor</h2>
@@ -36,14 +39,6 @@
         <a href="#i-list">↘ Lista zadań</a>
       </p>
 
-      <div class="toolbar">
-        <div class="left">
-          <button id="i-view-list" class="btn small view-active">Lista</button>
-        </div>
-        <div class="right">
-          <button id="i-createDefaults" class="btn ghost small">Dodaj domyślne (dziś)</button>
-        </div>
-      </div>
 
       <div class="i-chips">
         <button id="i-chipAll" class="chip chip-active">Wszystkie <span id="i-countAll" class="badge small">0</span></button>
@@ -87,9 +82,10 @@
 
         <div id="i-dynamicFields" class="grid g2"></div>
 
-        <label for="i-notes">Uwagi
-          <textarea id="i-notes" rows="2" placeholder="np. siodło ujeżdżeniowe, ochraniacze, itp."></textarea>
-        </label>
+        <label for="i-details">Szczegóły
+  <input id="i-details" type="text" placeholder="np. siodło ujeżdżeniowe, ochraniacze, itp." />
+</label>
+
 
         <div class="actions">
           <button id="i-add" class="btn">Dodaj</button>
@@ -98,11 +94,30 @@
 
       <h3 id="i-list-h">Zadania</h3>
       <div id="i-list" class="list"></div>
+      <h3 id="i-archive-h" class="subtle">Dni poprzednie</h3>
+<div id="i-archive" class="report-compact"></div>
+      <h3 id="i-archive-h" class="subtle">Dni poprzednie</h3>
+<div id="i-archive" class="report-compact"></div>
+
     </section>
 
     <!-- ======= WOLONTARIUSZ ======= -->
     <section id="tab-volunteer" class="hidden">
       <h2 id="volunteerTop">Wolontariusz</h2>
+<div id="v-scoreboard" class="panel scoreboard">
+  <div class="score-main">
+    <span class="icon-points" aria-hidden="true"></span>
+    <div>
+      <div class="score-title">Zatwierdzone</div>
+      <div class="score-value"><span id="v-approvedPoints">0</span> pkt</div>
+    </div>
+  </div>
+  <div class="score-side">
+    <div class="score-line">
+      <strong>W kolekcji:</strong> <span id="v-takenCount">0</span> podk.
+    </div>
+  </div>
+</div>
 
       <p class="mini-nav">
         <a href="#v-filters">↘ Filtry</a> •
@@ -133,151 +148,109 @@
           <input id="v-search" type="search" placeholder="Szukaj..." />
           <button id="pointsHistory" class="btn ghost small">Historia punktów</button>
           <button id="exportCsv" class="btn ghost small">Eksport CSV</button>
-          <button id="resetData" class="btn ghost small">Reset</button>
-          <button id="hardReset" class="btn ghost small">Hard reset</button>
+          <button id="resetData" class="btn ghost small">Reset danych (demo)</button>
         </div>
       </div>
 
-      <div class="score">
-        Moje punkty: <strong id="myPoints">0</strong> &nbsp; <span id="myHorseshoes"></span>
-      </div>
-
       <div id="v-list" class="list"></div>
+      <h3 id="v-archive-h" class="subtle">Dni poprzednie</h3>
+<div id="v-archive" class="report-compact"></div>
+
+      <h3 id="v-archive-h" class="subtle">Dni poprzednie</h3>
+<div id="v-archive" class="report-compact"></div>
+
     </section>
 
     <!-- ======= RAPORTY ======= -->
     <section id="tab-reports" class="hidden">
-      <h2 id="reportsTop">Raporty</h2>
+      <h2>Raporty</h2>
 
-      <p class="mini-nav">
-        <a href="#r-filters">↘ Zakres</a> •
-        <a href="#r-list">↘ Lista</a>
-      </p>
-
-      <div id="r-filters" class="toolbar">
-        <div class="left">
-          <label for="r-from">Od
-            <input id="r-from" type="date" />
-          </label>
-          <label for="r-to">Do
-            <input id="r-to" type="date" />
-          </label>
-          <label for="r-status">Status
-            <select id="r-status">
-              <option value="">— wszystkie —</option>
-              <option value="open">Wolne</option>
-              <option value="taken">W trakcie</option>
-              <option value="to_review">Do weryf.</option>
-              <option value="approved">Zatwierdzone</option>
-              <option value="rejected">Odrzucone</option>
-            </select>
-          </label>
-          <label for="r-group">Grupowanie
-            <select id="r-group">
-              <option value="none">Brak</option>
-              <option value="vol">Wolontariusz</option>
-              <option value="type">Typ</option>
-              <option value="horse">Koń</option>
-            </select>
-          </label>
-        </div>
-        <div class="right">
-          <button id="r-view-list" class="btn small view-active">Lista</button>
-        </div>
+      <div class="grid g2">
+        <label>Od <input id="r-from" type="date" /></label>
+        <label>Do <input id="r-to" type="date" /></label>
+        <label>Status
+          <select id="r-status">
+            <option value="">— wszystkie —</option>
+            <option value="open">Wolne</option>
+            <option value="taken">W trakcie</option>
+            <option value="to_review">Do weryf.</option>
+            <option value="approved">Zatwierdzone</option>
+            <option value="rejected">Odrzucone</option>
+          </select>
+        </label>
       </div>
 
       <div id="r-list" class="list"></div>
     </section>
 
     <!-- ======= ADMIN ======= -->
-    <section id="tab-admin" class="">
-      <h2 id="adminTop">Administracja</h2>
+    <section id="tab-admin">
+      <h2>Administracja</h2>
 
-      <p class="mini-nav">
-        <a href="#a-form">↘ Zapisy</a> •
-        <a href="#a-schedule">↘ Grafik dnia</a>
-      </p>
+     <div id="a-forms" class="panel">
+  <h3>Dodaj zadanie</h3>
 
-      <div class="toolbar">
-        <div class="left">
-          <label for="a-day">Dzień grafiku
-            <input id="a-day" type="date" />
-          </label>
-          <span id="adminTodayLabel" class="muted">Planowanie — —</span>
-        </div>
-        <div class="right">
-          <button id="a-generate" class="btn small">Generuj grafik</button>
-          <button id="a-refresh" class="btn ghost small">Odśwież</button>
-          <button id="a-print" class="btn ghost small">Drukuj</button>
-        </div>
-      </div>
+  <div class="grid g2">
+    <label for="a-taskType">Typ zadania
+      <select id="a-taskType">
+        <option value="jazda_grupowa">Jazda grupowa</option>
+        <option value="jazda_indywidualna">Jazda indywidualna</option>
+        <option value="prep">Przygotowanie do jazdy</option>
+        <option value="zabieg">Zabieg</option>
+        <option value="wyprowadzenie">Wyprowadzenie Stada</option>
+        <option value="sprowadzenie">Sprowadzenie Stada</option>
+        <option value="rozsiodłanie">Rozsiodłanie</option>
+        <option value="dziennikarz">Dziennikarz / Kronikarz</option>
+      </select>
+    </label>
 
-      <!-- FORM: zapisy na jazdę -->
-      <div id="a-form" class="panel">
-        <h3>Dodaj zapis</h3>
+    <label for="a-place">Miejsce/arena
+      <input id="a-place" type="text" placeholder="np. ujeżdżalnia A" />
+    </label>
 
-        <div class="grid g2">
-          <label for="a-first">Imię
-            <input id="a-first" type="text" required />
-          </label>
+    <label for="a-points">Punkty (0–4)
+      <input id="a-points" type="number" min="0" max="4" value="2" />
+    </label>
 
-          <label for="a-last">Nazwisko
-            <input id="a-last" type="text" required />
-          </label>
+    <label for="a-title">Tytuł (opcjonalnie)
+      <input id="a-title" type="text" placeholder="opcjonalnie – generujemy automatycznie" />
+    </label>
+  </div>
 
-          <label for="a-phone">Telefon
-            <input id="a-phone" type="tel" />
-          </label>
+  <div id="a-dynamicFields" class="grid g2"></div>
 
-          <label for="a-email">E-mail
-            <input id="a-email" type="email" />
-          </label>
+  <label for="a-details">Szczegóły
+    <input id="a-details" type="text" placeholder="np. siodło ujeżdżeniowe, ochraniacze, itp." />
+  </label>
 
-          <label for="a-rideType">Rodzaj
-            <select id="a-rideType">
-              <option value="jazda_grupowa" selected>Jazda grupowa</option>
-              <option value="jazda_indywidualna">Jazda indywidualna</option>
-              <option value="zabieg">Zabieg</option>
-            </select>
-          </label>
+  <div class="actions">
+    <button id="a-add" class="btn">Dodaj</button>
+  </div>
+</div>
 
-          <label for="a-level">Poziom / typ
-            <select id="a-level"></select>
-          </label>
 
-          <label for="a-horse">Koń
-            <select id="a-horse"></select>
-          </label>
+<!-- GRAFIK DNIA -->
+<div id="a-schedule" class="panel">
+  <h3 id="schedTitle">Grafik dnia</h3>
+  <div class="sched-wrap">
+    <div class="rotate-hint">Aby wygodniej przeglądać grafik — obróć telefon w poziom.</div>
+    <div id="scheduleGrid" class="sched-grid"></div>
+  </div>
+</div>
 
-          <label for="a-date">Data
-            <input id="a-date" type="date" />
-          </label>
+<!-- GRAFIK ZABIEGÓW DNIA -->
+<div id="a-schedule-proc" class="panel">
+  <h3 id="schedProcTitle">Grafik zabiegów dnia</h3>
+  <div class="sched-wrap">
+    <div class="rotate-hint">Aby wygodniej przeglądać grafik — obróć telefon w poziom.</div>
+    <div id="scheduleGridProc" class="sched-grid"></div>
+  </div>
+</div>
+</section>
 
-          <label for="a-when">Godzina
-            <input id="a-when" type="time" />
-          </label>
-
-          <label for="a-instructor">Instruktor
-            <select id="a-instructor"></select>
-          </label>
-        </div>
-
-        <div class="actions">
-          <button id="a-addRider" class="btn">Dodaj zapis</button>
-        </div>
-      </div>
-
-      <!-- GRAFIK DNIA -->
-      <div id="a-schedule" class="panel">
-        <h3 id="schedTitle">Grafik dnia</h3>
-        <div class="sched-wrap">
-          <div class="rotate-hint">Aby wygodniej przeglądać grafik — obróć telefon w poziom.</div>
-          <div id="scheduleGrid" class="sched-grid"></div>
-        </div>
-      </div>
-    </section>
 
   </main>
+
 
   <!-- ======= MODALE ======= -->
   <section id="confirm" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
@@ -293,18 +266,35 @@
     </div>
   </section>
 
+  <section id="details" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="detailsTitle">
+  <div class="modal-box">
+    <header class="modal-head">
+      <h3 id="detailsTitle">Szczegóły zadania</h3>
+    </header>
+    <div id="detailsBody" class="modal-body"></div>
+    <footer class="modal-foot">
+      <button id="detailsClose" class="btn">Zamknij</button>
+    </footer>
+  </div>
+</section>
+
+
   <!-- TOAST -->
   <div id="toast" class="toast"></div>
 
   <!-- ======= FOOTER ======= -->
   <footer class="wrap muted center">
-    EquiFlow — MVP • v1.6.4
+    EquiFlow — MVP • v1.6.6
   </footer>
 
-<script src="app-v1_6_6.js?v=1.6.6"></script>
-<script src="validators.js?v=1.6.6"></script>
+  <!-- Walidatory i główna logika -->
+  <script src="validators.js?v=1.6.6"></script>
+  <script src="app-v1_6_6.js?v=1.6.6"></script>
 
+  <!-- Skórka kart zadań – ładowana po app.js -->
+  <script src="tasks-ui.js?v=1.6.7"></script>
 
-
+  <!-- Animacje (opcjonalne) -->
+  <script src="ui-animations.js"></script>
 </body>
 </html>

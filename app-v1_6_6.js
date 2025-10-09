@@ -33,20 +33,62 @@
   function escapeHTML(s){ return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"); }
   function addDays(iso,days){ const d=new Date(iso); d.setDate(d.getDate()+days); const z=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
   function el(tag, cls="", text=""){ const x=document.createElement(tag); if(cls) x.className=cls; if(text!=null) x.textContent=text; return x; }
+// ===== Modal Szczegóły =====
+function openTaskDetailsById(id){
+  try{
+    const t = state.tasks.find(x=>x.id===id);
+    if(!t){ toastMsg("Nie znaleziono zadania"); return; }
+    const m = $("#details"); const body=$("#detailsBody"); const title=$("#detailsTitle"); const close=$("#detailsClose");
+    if(!m||!body||!title||!close){ alert("Szczegóły (fallback)"); return; }
+
+    title.textContent = t.title || "Szczegóły zadania";
+    const meta = [
+      t.dateISO ? `Data: ${isoToPL(t.dateISO)}` : null,
+      t.when ? `Godzina: ${t.when}` : null,
+      t.horse ? `Koń: ${t.horse}` : null,
+      t.rider ? `Jeździec: ${t.rider}` : null,
+      t.arena ? `Miejsce: ${t.arena}` : null,
+      t.groupLevel ? `Poziom (grupa): ${t.groupLevel}` : null,
+      t.indivLevel ? `Poziom (indyw.): ${t.indivLevel}` : null,
+      `Status: ${statusLabel(t.status)}`,
+      (typeof t.points==="number") ? `Punkty: ${t.points}` : null,
+      t.assignedTo ? `Przypisane: ${t.assignedTo}` : null,
+      (t.instructorId ? `Instruktor: ${(state.instructors.find(i=>i.id===t.instructorId)?.label)||"—"}` : null)
+    ].filter(Boolean);
+
+    const details = (t.comments||"").trim();
+
+    body.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="meta">${meta.map(escapeHTML).join(" • ")}</div>
+        ${details ? `<div><strong>Uwagi / Szczegóły:</strong><br>${escapeHTML(details)}</div>` : `<div class="meta">Brak dodatkowych szczegółów.</div>`}
+      </div>
+    `;
+
+    const closeFn = ()=> m.classList.add("hidden");
+    m.classList.remove("hidden");
+    close.onclick = closeFn;
+    m.addEventListener("click", (e)=>{ if(e.target===m) closeFn(); }, { once:true });
+    document.addEventListener("keydown", function esc(e){ if(e.key==="Escape"){ closeFn(); document.removeEventListener("keydown", esc); }});
+  }catch(e){ console.warn("openTaskDetailsById", e); }
+}
 
   function toastMsg(msg, {danger=false}={}) {
-    try{
-      const el = $("#toast");
-      if(!el){ console.warn("[toast] brak #toast"); return; }
-      el.textContent = msg;
-      if(danger){ el.style.background="#b91c1c"; el.style.color="#fff"; }
-      el.classList.add("show");
-      setTimeout(()=>{
-        el.classList.remove("show");
-        el.style.background=""; el.style.color="";
-      }, 2200);
-    }catch(e){ console.warn("toast error", e); }
-  }
+  try{
+    const el = $("#toast");
+    if(!el){ console.warn("[toast] brak #toast"); alert(msg); return; }
+    el.textContent = msg;
+    if(danger){ el.style.background="#b91c1c"; el.style.color="#fff"; }
+    el.classList.add("show");
+    // Zamykaj DOPIERO po kliknięciu
+    el.onclick = ()=>{
+      el.classList.remove("show");
+      el.style.background=""; el.style.color="";
+      el.onclick = null;
+    };
+  }catch(e){ console.warn("toast error", e); }
+}
+
 
   function flash(anchorSelector, text){
     try{
@@ -222,43 +264,42 @@
   let state = null;
 
   /* ===== Bootstrap ===== */
-  document.addEventListener("DOMContentLoaded", () => {
-    try{
-      state = {
-        volunteer:   load(LS.USER)        || { name: "" },
-        tasks:       load(LS.TASKS)       || seedTasks.slice(),
-        settings:    load(LS.SETTINGS)    || { demoAutoApprove: false },
-        horses:      load(LS.HORSES)      || seedHorses,
-        riders:      load(LS.RIDERS)      || seedRiders,
-        instructors: load(LS.INSTRUCTORS) || seedInstructors,
-        ui: (() => {
-          const today = todayISO();
-          const ui = load(LS.UI);
-          if (ui) {
-            return {
-              ...ui,
-              a: { ...(ui.a || {}), day: today },
-              v: { ...(ui.v||{}), view: "list" },
-              i: { ...(ui.i||{}), view: "list", status: ui.i?.status || "all", future: !!ui.i?.future, sort: ui.i?.sort || "newest" },
-              r: { ...(ui.r||{}), view: "list", from: ui.r?.from || today, to: ui.r?.to || today }
-            };
-          }
-          return {
-            tab: "admin",
-            v: { status:"all", onlyMine:false, type:"", view:"list", search:"" },
-            i: { view:"list", status:"all", future:false, sort:"newest" },
-            r: { view:"list", from: today, to: today, group:"none", status:"" },
-            a: { day: today }
-          };
-        })()
-      };
+document.addEventListener("DOMContentLoaded", () => {
+  try{
+    state = {
+      volunteer:   load(LS.USER)        || { name: "" },
+      tasks:       load(LS.TASKS)       || seedTasks.slice(),
+      settings:    load(LS.SETTINGS)    || { demoAutoApprove: false },
+      horses:      load(LS.HORSES)      || seedHorses,
+      riders:      load(LS.RIDERS)      || seedRiders,
+      instructors: load(LS.INSTRUCTORS) || seedInstructors,
+      ui: (() => {
+        const today = todayISO();
+        const ui = load(LS.UI);
+if (ui) {
+  return {
+    ...ui,
+    a: { ...(ui.a || {}), day: today },
+    v: { ...(ui.v || {}), view: "list" },
+    i: { ...(ui.i || {}), view: "list", status: ui.i?.status || "all", future: !!ui.i?.future, sort: ui.i?.sort || "newest" },
+    r: { ...(ui.r || {}), view: "list", from: ui.r?.from || today, to: ui.r?.to || today }
+  };
+}
 
-      ensureDailyTasksForToday();
-      state.ui.tab = state.ui.tab || "admin";
-      save(LS.UI, state.ui);
+        // WYMUSZAMY dzisiejszy zakres w Raportach przy KAŻDYM starcie
+        base.r.from = today;
+        base.r.to   = today;
+        return base;
+      })()
+    };
 
-      // TABY — rejestracja absolutnie na pewno:
-      initTabs();
+    ensureDailyTasksForToday();
+    state.ui.tab = state.ui.tab || "admin";
+    save(LS.UI, state.ui);
+
+    // TABY — rejestracja absolutnie na pewno:
+    initTabs();
+
 
       // Reszta UI
       bindProfile();
@@ -414,6 +455,7 @@
   function renderDynamicFields(){
     try{
       const c = $("#i-dynamicFields"); if(!c) return;
+
       c.innerHTML = "";
       const type = $("#i-taskType")?.value;
 
@@ -433,17 +475,27 @@
 
       if (type==="prep"){
         if (placeWrap) placeWrap.style.display = "none";
-        append(c, date, time, rider);
+        append(c, date, time);
       }
       else if (type==="zabieg"){
+
         if (placeWrap) placeWrap.style.display = "none";
         const proc = inputSelect("Typ zabiegu","i-proc",PROCEDURES);
         append(c, date, horse, proc);
       }
-      else if (["wyprowadzenie","sprowadzenie","rozsiodłanie"].includes(type)){
-        if (placeWrap) placeWrap.style.display = "";
+    else if (["wyprowadzenie","sprowadzenie","rozsiodłanie"].includes(type)){
+        if (placeWrap) placeWrap.style.display = "none";
+        append(c, date);
+      }
+else if (type==="dziennikarz"){
+        if (placeWrap) placeWrap.style.display = "none";
         append(c, date, time);
       }
+      else if (type==="dziennikarz"){
+      if (placeWrap) placeWrap.style.display = "none";
+      append(c, date, time);
+    }
+
       else if (type==="jazda_grupowa"){
         if (placeWrap) placeWrap.style.display = "";
         const inst = document.createElement("label");
@@ -475,9 +527,78 @@
         el.innerHTML = `${label}<select id="${id}">${opts}</select>`;
         return el;
       }
-      function append(parent, ...children){ children.forEach(ch=>parent.appendChild(ch)); }
+function append(parent, ...children){ children.forEach(ch=>parent.appendChild(ch)); }
     }catch(e){ console.warn("renderDynamicFields error", e); }
   }
+function renderDynamicFieldsAdmin(){
+  try{
+    const c = $("#a-dynamicFields"); if(!c) return;
+    c.innerHTML = "";
+    const type = $("#a-taskType")?.value;
+
+    if(!state.horses?.length) state.horses = seedHorses.slice();
+    if(!state.riders?.length) state.riders = seedRiders.slice();
+
+    const date = inputDate("Data", "a-date", todayISO());
+    const time = inputTime("Godzina", "a-when");
+    const horse = inputSelect("Koń", "a-horse", ["— koń —"].concat(state.horses.map(h=>h.name)));
+    const rider = inputSelect("Jeździec", "a-rider", ["— jeździec —"].concat(uniqueRiderNames()));
+    const levelGroup = inputSelect("Poziom (grupa)", "a-level-group", LEVELS_GROUP);
+    const levelIndiv  = inputSelect("Poziom (indywidualna)", "a-level-indiv", LEVELS_INDIV);
+
+    const placeWrap = $("#a-place")?.closest("label");
+    const titleWrap = $("#a-title")?.closest("label");
+    if (titleWrap) titleWrap.style.display = "none"; // tytuł generujemy
+
+    if (type==="prep"){
+      if (placeWrap) placeWrap.style.display = "none";
+      append(c, date, time);
+    }
+    else if (type==="zabieg"){
+
+      if (placeWrap) placeWrap.style.display = "none";
+      const proc = inputSelect("Typ zabiegu","a-proc",PROCEDURES);
+      append(c, date, horse, proc);
+    }
+    else if (["wyprowadzenie","sprowadzenie","rozsiodłanie"].includes(type)){
+      if (placeWrap) placeWrap.style.display = "none";
+      append(c, date);
+    }
+
+    else if (type==="jazda_grupowa"){
+      if (placeWrap) placeWrap.style.display = "";
+      const inst = document.createElement("label");
+      inst.innerHTML = `Instruktor
+        <select id="a-instructor">
+          <option value="">— instruktor —</option>
+          ${state.instructors.map(i=>`<option value="${escapeHTML(i.id)}">${escapeHTML(i.label)}</option>`).join("")}
+        </select>`;
+      append(c, date, time, levelGroup, horse, rider, inst);
+    }
+    else if (type==="jazda_indywidualna"){
+      if (placeWrap) placeWrap.style.display = "";
+      const inst = document.createElement("label");
+      inst.innerHTML = `Instruktor
+        <select id="a-instructor">
+          <option value="">— instruktor —</option>
+          ${state.instructors.map(i=>`<option value="${escapeHTML(i.id)}">${escapeHTML(i.label)}</option>`).join("")}
+        </select>`;
+      append(c, date, time, levelIndiv, horse, rider, inst);
+    }
+
+    function inputDate(label, id, iso){ const el=document.createElement("label"); el.innerHTML=`${label}<input id="${id}" type="date" value="${iso}"/>`; return el; }
+    function inputTime(label, id){ const el=document.createElement("label"); el.innerHTML=`${label}<input id="${id}" type="time" />`; return el; }
+    function inputSelect(label,id,arr){
+      const el=document.createElement("label");
+      const opts = arr.map(v=> typeof v==="string"
+        ? `<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`
+        : `<option value="${escapeHTML(v.value)}">${escapeHTML(v.text)}</option>`).join("");
+      el.innerHTML = `${label}<select id="${id}">${opts}</select>`;
+      return el;
+    }
+function append(parent, ...children){ children.forEach(ch=>parent.appendChild(ch)); }
+  }catch(e){ console.warn("renderDynamicFieldsAdmin error", e); }
+}
 
   function makeTitle(tp, data){
     if(tp==="jazda_grupowa")      return `Jazda Grupowa — ${data.groupLevel||"—"} • ${data.horse||"—"} • ${data.rider||"—"}`;
@@ -487,38 +608,163 @@
     return typeLabel(tp);
   }
 
-  async function addInstructorTask(){
-    try{
-      if (!$("#i-date")) renderDynamicFields();
+async function addInstructorTask(){
+  try{
+    const tp = $("#i-taskType")?.value;
+    const points = clamp(+($("#i-points")?.value||2), 0, 4);
+    const arena = ($("#i-place")?.value||"").trim() || null;
+    const title = ($("#i-title")?.value||"").trim();
+    const dateISO = $("#i-date")?.value || todayISO();
+    const when = $("#i-when")?.value || null;
+    const horse = $("#i-horse")?.value && $("#i-horse").value!=="— koń —" ? $("#i-horse").value : null;
+    const rider = $("#i-rider")?.value && $("#i-rider").value!=="— jeździec —" ? $("#i-rider").value : null;
+    const groupLevel = $("#i-level-group")?.value || null;
+    const indivLevel = $("#i-level-indiv")?.value || null;
+    const procType = $("#i-proc")?.value || null;
+const notes = (($("#i-details")?.value ?? $("#i-notes")?.value) || "").trim();
+    const instructorId = $("#i-instructor")?.value || null;
 
-      const tp = $("#i-taskType")?.value;
-      const points = clamp(+($("#i-points")?.value||2), 0, 4);
-      const arena = ($("#i-place")?.value||"").trim() || null;
-      const title = ($("#i-title")?.value||"").trim();
-      const dateISO = $("#i-date")?.value || todayISO();
-      const when = $("#i-when")?.value || null;
-      const horse = $("#i-horse")?.value && $("#i-horse").value!=="— koń —" ? $("#i-horse").value : null;
-      const rider = $("#i-rider")?.value && $("#i-rider").value!=="— jeździec —" ? $("#i-rider").value : null;
-      const groupLevel = $("#i-level-group")?.value || null;
-      const indivLevel = $("#i-level-indiv")?.value || null;
-      const procType = $("#i-proc")?.value || null;
-      const notes = ($("#i-notes")?.value||"").trim();
-      const instructorId = $("#i-instructor")?.value || null;
+    let t;
+
+  if (tp==="prep"){
+      if(!when){ toastMsg("Przygotowanie: podaj godzinę", {danger:true}); return; }
+      t = task(title||makeTitle(tp,{when}), "prep",
+        {arena:null, horse:null, rider:null, when, dateISO, points, comments: notes});
+    }
+    else if (tp==="zabieg"){
+
+      if(!horse || !procType){ toastMsg("Zabieg: wybierz konia i typ zabiegu", {danger:true}); return; }
+      t = task(title||makeTitle(tp,{horse,procType}), "zabieg",
+        {arena:null, horse, when, dateISO, points, procType, comments: notes});
+    }
+    else if (["wyprowadzenie","sprowadzenie","rozsiodłanie"].includes(tp)){
+     t = task(title||typeLabel(tp), tp, {arena:null, when:null, dateISO, points, daily:true, comments: notes});
+    }
+    else if (tp === "jazda_grupowa") {
+      if (!when || !groupLevel || !horse || !rider) {
+        toastMsg("Jazda grupowa: data, godzina, poziom, koń, jeździec", {danger:true});
+        return;
+      }
+      if (!instructorId) { toastMsg("Wybierz instruktora", {danger:true}); return; }
+
+      const vState = EQF_buildRidesState();
+      const newRide = { id:null, date:dateISO, time:when, horse, rider, instructor:instructorId, level:groupLevel };
+      const vRes = V().validateRide(newRide, vState, { mode:"create" });
+      if (vRes.errors.length) { V().showValidationMessages(vRes); return; }
+
+      const doCreateGroup = () => {
+        const sameTimeHorse = vState.rides.some(r => r.date===dateISO && r.time===when && (r.horse||"") === (horse||""));
+        if (sameTimeHorse){
+          V().showValidationMessages({errors:[`Koń ${horse} jest już zapisany na ${when}.`], warnings:[]});
+          return;
+        }
+        const [firstName, ...restName] = (rider||"").split(" ");
+        const lastName = restName.join(" ") || "";
+        const riderObj = { id: uid(), first:firstName||rider, last:lastName, tel:"", email:"", level:groupLevel, dateISO, when, instructorId, horse };
+        state.riders.push(riderObj);
+
+        const tNew = task(title || makeTitle(tp, { groupLevel, horse, rider }), "jazda_grupowa", {
+          arena, horse, rider, riderId: riderObj.id, instructorId, when, dateISO, points: 0, groupLevel, comments: notes
+        });
+        state.tasks.unshift(tNew);
+        persistAll(); renderAll(); flash("#i-add","Dodano zadanie");
+      };
+
+      if (vRes.needsConfirm) { V().confirmWarnings(vRes, () => doCreateGroup(), () => {}); return; }
+      else if (vRes.warnings.length) { V().showValidationMessages(vRes); }
+
+      doCreateGroup(); return;
+    }
+    else if (tp === "jazda_indywidualna") {
+      if (!when || !indivLevel || !horse || !rider) {
+        toastMsg("Jazda indywidualna: data, godzina, poziom, koń, jeździec", {danger:true});
+        return;
+      }
+      if (!instructorId) { toastMsg("Wybierz instruktora", {danger:true}); return; }
+
+      const vState = EQF_buildRidesState();
+      const newRide = { id:null, date:dateISO, time:when, horse, rider, instructor:instructorId, level:indivLevel };
+      const vRes = V().validateRide(newRide, vState, { mode:"create" });
+      if (vRes.errors.length) { V().showValidationMessages(vRes); return; }
+
+      const doCreateIndiv = () => {
+        const sameTimeHorse = vState.rides.some(r => r.date===dateISO && r.time===when && (r.horse||"") === (horse||""));
+        if (sameTimeHorse){
+          V().showValidationMessages({errors:[`Koń ${horse} jest już zapisany na ${when}.`], warnings:[]});
+          return;
+        }
+        const [firstName2, ...restName2] = (rider||"").split(" ");
+        const lastName2 = restName2.join(" ") || "";
+        const riderObj = { id: uid(), first:firstName2||rider, last:lastName2, tel:"", email:"", level:indivLevel, dateISO, when, instructorId, horse };
+        state.riders.push(riderObj);
+
+        const tNew = task(title || makeTitle(tp, { indivLevel, horse, rider }), "jazda_indywidualna", {
+          arena, horse, rider, riderId:riderObj.id, instructorId, when, dateISO, points:0, indivLevel, comments: notes
+        });
+        state.tasks.unshift(tNew);
+        persistAll(); renderAll(); flash("#i-add","Dodano zadanie");
+      };
+
+      if (vRes.needsConfirm) { V().confirmWarnings(vRes, () => doCreateIndiv(), () => {}); return; }
+      else if (vRes.warnings.length) { V().showValidationMessages(vRes); }
+
+      doCreateIndiv(); return;
+    }
+    else if (tp === "dziennikarz"){
+      // nowy obsługiwany typ — prosty task, bez walidacji jazdy
+      t = task(title||"Dziennikarz / Kronikarz", "dziennikarz", {
+        dateISO, when, points, comments: notes
+      });
+    }
+    else {
+      toastMsg("Nieobsługiwany typ", {danger:true});
+      return;
+    }
+
+    if (t){
+      state.tasks.unshift(t);
+      persistAll();
+      renderAll();
+      flash("#i-add","Dodano zadanie");
+    }
+  }catch(e){
+    console.error("addInstructorTask fatal", e);
+    toastMsg("Błąd dodawania — sprawdź konsolę", {danger:true});
+  }
+}
+  async function addAdminTask(){
+    try{
+      if (!$("#a-date")) renderDynamicFieldsAdmin();
+
+      const tp = $("#a-taskType")?.value;
+      const points = clamp(+($("#a-points")?.value||2), 0, 4);
+      const arena = ($("#a-place")?.value||"").trim() || null;
+      const title = ($("#a-title")?.value||"").trim();
+      const dateISO = $("#a-date")?.value || todayISO();
+      const when = $("#a-when")?.value || null;
+      const horse = $("#a-horse")?.value && $("#a-horse").value!=="— koń —" ? $("#a-horse").value : null;
+      const rider = $("#a-rider")?.value && $("#a-rider").value!=="— jeździec —" ? $("#a-rider").value : null;
+      const groupLevel = $("#a-level-group")?.value || null;
+      const indivLevel = $("#a-level-indiv")?.value || null;
+      const procType = $("#a-proc")?.value || null;
+      const notes = ($("#a-details")?.value||"").trim();
+      const instructorId = $("#a-instructor")?.value || null;
 
       let t;
 
-      if (tp==="prep"){
-        if(!rider || !when){ toastMsg("Przygotowanie: podaj jeźdźca i godzinę", {danger:true}); return; }
-        t = task(title||makeTitle(tp,{rider,when}), "prep",
-          {arena:null, horse:null, rider, when, dateISO, points, comments: notes});
+     if (tp==="prep"){
+        if(!when){ toastMsg("Przygotowanie: podaj godzinę", {danger:true}); return; }
+        t = task(title||makeTitle(tp,{when}), "prep",
+          {arena:null, horse:null, rider:null, when, dateISO, points, comments: notes});
       }
       else if (tp==="zabieg"){
+
         if(!horse || !procType){ toastMsg("Zabieg: wybierz konia i typ zabiegu", {danger:true}); return; }
         t = task(title||makeTitle(tp,{horse,procType}), "zabieg",
           {arena:null, horse, when, dateISO, points, procType, comments: notes});
       }
       else if (["wyprowadzenie","sprowadzenie","rozsiodłanie"].includes(tp)){
-        t = task(title||typeLabel(tp), tp, {arena, when, dateISO, points, daily:true, comments: notes});
+        t = task(title||typeLabel(tp), tp, {arena:null, when:null, dateISO, points, daily:true, comments: notes});
       }
       else if (tp === "jazda_grupowa") {
         if (!when || !groupLevel || !horse || !rider) {
@@ -540,25 +786,20 @@
           }
           const [firstName, ...restName] = (rider||"").split(" ");
           const lastName = restName.join(" ") || "";
-          const riderObjFromInstr = { id: uid(), first:firstName||rider, last:lastName, tel:"", email:"", level:groupLevel, dateISO, when, instructorId, horse };
-          state.riders.push(riderObjFromInstr);
+          const riderObj = { id: uid(), first:firstName||rider, last:lastName, tel:"", email:"", level:groupLevel, dateISO, when, instructorId, horse };
+          state.riders.push(riderObj);
 
           const tNew = task(title || makeTitle(tp, { groupLevel, horse, rider }), "jazda_grupowa", {
-            arena, horse, rider, riderId: riderObjFromInstr.id, instructorId, when, dateISO, points: 0, groupLevel, comments: notes
+            arena, horse, rider, riderId: riderObj.id, instructorId, when, dateISO, points: 0, groupLevel, comments: notes
           });
           state.tasks.unshift(tNew);
-          persistAll(); renderAll(); flash("#i-add","Dodano zadanie");
+          persistAll(); renderAll(); flash("#a-add","Dodano zadanie");
         };
 
-        if (vRes.needsConfirm) {
-          V().confirmWarnings(vRes, () => doCreateGroup(), () => {/* Anulowano */});
-          return;
-        } else if (vRes.warnings.length) {
-          V().showValidationMessages(vRes);
-        }
+        if (vRes.needsConfirm) { V().confirmWarnings(vRes, () => doCreateGroup(), () => {}); return; }
+        else if (vRes.warnings.length) { V().showValidationMessages(vRes); }
 
-        doCreateGroup();
-        return;
+        doCreateGroup(); return;
       }
       else if (tp === "jazda_indywidualna") {
         if (!when || !indivLevel || !horse || !rider) {
@@ -578,28 +819,28 @@
             V().showValidationMessages({errors:[`Koń ${horse} jest już zapisany na ${when}.`], warnings:[]});
             return;
           }
-
           const [firstName2, ...restName2] = (rider||"").split(" ");
           const lastName2 = restName2.join(" ") || "";
-          const riderObjFromInstrInd = { id: uid(), first:firstName2||rider, last:lastName2, tel:"", email:"", level:indivLevel, dateISO, when, instructorId, horse };
-          state.riders.push(riderObjFromInstrInd);
+          const riderObj = { id: uid(), first:firstName2||rider, last:lastName2, tel:"", email:"", level:indivLevel, dateISO, when, instructorId, horse };
+          state.riders.push(riderObj);
 
           const tNew = task(title || makeTitle(tp, { indivLevel, horse, rider }), "jazda_indywidualna", {
-            arena, horse, rider, riderId:riderObjFromInstrInd.id, instructorId, when, dateISO, points:0, indivLevel, comments: notes
+            arena, horse, rider, riderId:riderObj.id, instructorId, when, dateISO, points:0, indivLevel, comments: notes
           });
           state.tasks.unshift(tNew);
-          persistAll(); renderAll(); flash("#i-add","Dodano zadanie");
+          persistAll(); renderAll(); flash("#a-add","Dodano zadanie");
         };
 
-        if (vRes.needsConfirm) {
-          V().confirmWarnings(vRes, () => doCreateIndiv(), () => {/* Anulowano */});
-          return;
-        } else if (vRes.warnings.length) {
-          V().showValidationMessages(vRes);
-        }
+        if (vRes.needsConfirm) { V().confirmWarnings(vRes, () => doCreateIndiv(), () => {}); return; }
+        else if (vRes.warnings.length) { V().showValidationMessages(vRes); }
 
-        doCreateIndiv();
-        return;
+        doCreateIndiv(); return;
+      }
+      else if (tp === "dziennikarz"){
+        // prosty task — karta pojawia się u Instr/Wolon (bez grafiku jazd)
+        t = task(title||"Dziennikarz / Kronikarz", "dziennikarz", {
+          dateISO, when, points, comments: notes
+        });
       }
       else {
         toastMsg("Nieobsługiwany typ", {danger:true});
@@ -610,27 +851,33 @@
         state.tasks.unshift(t);
         persistAll();
         renderAll();
-        flash("#i-add","Dodano zadanie");
+        flash("#a-add","Dodano zadanie");
       }
     }catch(e){
-      console.error("addInstructorTask fatal", e);
+      console.error("addAdminTask fatal", e);
       toastMsg("Błąd dodawania — sprawdź konsolę", {danger:true});
     }
   }
+
 
   function renderInstructor(){
     try{
       const list = $("#i-list");
       if(!list) return;
 
-      let items = state.tasks.slice();
-      if(state.ui.i?.status && state.ui.i.status!=="all"){
-        items = items.filter(t=> t.status===state.ui.i.status);
-      }
-      if(state.ui.i?.future){
-        const today = todayISO();
-        items = items.filter(t=> t.dateISO > today);
-      }
+    let items = state.tasks.slice();
+// FILTR: karty pokazują WYŁĄCZNIE DZISIEJSZE (chyba że włączony tryb „przyszłość”)
+const today = todayISO();
+if (state.ui.i?.future){
+  items = items.filter(t => t.dateISO > today);
+} else {
+  items = items.filter(t => t.dateISO === today);
+}
+// dodatkowy filtr po statusie (jak dotychczas)
+if(state.ui.i?.status && state.ui.i.status!=="all"){
+  items = items.filter(t=> t.status===state.ui.i.status);
+}
+
 
       items.sort((a,b)=>{
         const sort = state.ui.i?.sort || "newest";
@@ -651,10 +898,16 @@
 
       list.className = "list";
       list.innerHTML = items.map(cardHTMLInstructor).join("");
+      renderInstructorArchive(state.tasks);
 
       list.querySelectorAll(".openModal").forEach(b=>b.addEventListener("click", e=>{
-        const id = e.currentTarget.dataset.id; const t = state.tasks.find(x=>x.id===id); if(t) alert("Podgląd (demo)");
-      }));
+  try{
+    const id = e.currentTarget.dataset.id;
+    if(!id) return;
+    openTaskDetailsById(id);
+  }catch(_){}
+}));
+
       list.querySelectorAll(".approve").forEach(b=>b.addEventListener("click", onApprove));
       list.querySelectorAll(".reject").forEach(b=>b.addEventListener("click", onReject));
       list.querySelectorAll(".assign").forEach(b=>b.addEventListener("click", onAssignVolunteer));
@@ -716,12 +969,13 @@
       <div class="meta">${escapeHTML(meta)}</div>
       ${instSelect}
       ${t.comments ? `<div class="meta">Uwagi: ${escapeHTML(t.comments)}</div>` : ""}
-      <div class="kit">
-        <button class="btn small openModal" data-id="${t.id}">Podgląd</button>
+           <div class="kit">
+        <button class="btn small openModal" type="button" data-id="${t.id}">Szczegóły</button>
         ${actions}
       </div>
     </article>`;
-  }
+          }
+    
 
   function assignVolunteerUI(id){
     const vols = uniqueAssignedCandidates();
@@ -790,17 +1044,18 @@
     }catch(err){ console.warn("onNudge", err); }
   }
 
-  function onDeleteTask(e){
-    try{
-      const id = e.currentTarget.dataset.id;
-      const t = state.tasks.find(x=>x.id===id);
-      if(!t) return;
-      if (t.status === "approved"){
-        V().showValidationMessages({errors:["Nie można usuwać zatwierdzonych zadań."], warnings:[]});
-        return;
-      }
-      if(!confirm("Usunąć to zadanie?")) return;
+function onDeleteTask(e){
+  try{
+    const id = e.currentTarget.dataset.id;
+    const t = state.tasks.find(x=>x.id===id);
+    if(!t) return;
+    if (t.status === "approved"){
+      V().showValidationMessages({errors:["Nie można usuwać zatwierdzonych zadań."], warnings:[]});
+      return;
+    }
 
+    V().confirmWarnings({ warnings: ["Na pewno usunąć to zadanie?"] }, () => {
+      // Usuń powiązanego jeźdźca jeśli to jazda (spójnie z dotychczasową logiką)
       if ((t.type==="jazda_grupowa" || t.type==="jazda_indywidualna") && t.riderId){
         state.riders = state.riders.filter(r => r.id !== t.riderId);
       } else if (t.type==="jazda_grupowa" || t.type==="jazda_indywidualna"){
@@ -812,10 +1067,15 @@
           return !(sameDay && sameTime && sameHorse && sameRider);
         });
       }
+      // Usuń zadanie
       state.tasks = state.tasks.filter(x=>x.id!==id);
       persistAll(); renderAll();
-    }catch(err){ console.warn("onDeleteTask", err); }
-  }
+      toastMsg("Zadanie usunięte");
+    }, () => {});
+    return; // wyjście po zainicjowaniu modala
+  }catch(err){ console.warn("onDeleteTask", err); }
+}
+
 
   function onApprove(e){
     try{
@@ -847,6 +1107,116 @@
   }
   function classByStatus(st){ if (st==="approved"||st==="rejected") return st+" dim"; return st; }
   function horseshoesHTML(n){ return new Array(n).fill(0).map((_,i)=>`<span class="hs ${i<2?'fill':''}"></span>`).join(""); }
+// ===== ARCHIWUM (dni poprzednie pod listami) =====
+function isISO(iso){ return /^\d{4}-\d{2}-\d{2}$/.test(String(iso||"")); }
+function daysBetween(aISO,bISO){ try{ const A=new Date(aISO+"T00:00:00"); const B=new Date(bISO+"T00:00:00"); return Math.round((A-B)/86400000); }catch{ return 0; } }
+function withinLastNDays(iso, n){
+  try{ const t=todayISO(); return isISO(iso) && (new Date(iso) < new Date(t)) && (daysBetween(t, iso) <= n); }catch{ return false; }
+}
+function isRide(t){ return t && (t.type==="jazda_grupowa" || t.type==="jazda_indywidualna"); }
+function displayStatusForArchive(t){
+  // Dla JAZD: jeśli data < dziś i zadanie istnieje → traktujemy jako „zrealizowane” (UI).
+  if (isRide(t) && isISO(t.dateISO) && (new Date(t.dateISO) < new Date(todayISO()))) return "approved";
+  return t.status || "open";
+}
+function compactRows(items, role){
+  const me = (state.volunteer.name||"").trim();
+  const mount = role==="instructor" ? $("#i-archive") : $("#v-archive");
+  const more = !!(mount && mount.dataset.more === "1");
+  const days = more ? 7 : 1;
+  const filt = (mount && mount.dataset.filter) || "all";
+
+  // Tylko przeszłość (wczoraj lub ostatnie 7 dni)
+  const pastNDays = items.filter(t => isISO(t.dateISO) && withinLastNDays(t.dateISO, days));
+
+  // Widoczność: Instruktor widzi wszystkie, Wolontariusz tylko swoje
+  let visible = role==="instructor" ? pastNDays : pastNDays.filter(t => t.assignedTo === me);
+
+  // Mini-filtr statusu
+  if (filt !== "all"){
+    visible = visible.filter(t => displayStatusForArchive(t) === filt);
+  }
+  if (!visible.length) return "";
+
+  const head = `
+    <thead><tr>
+      <th>Data</th><th>Typ</th><th>Tytuł</th><th>Koń</th><th>Osoba</th><th>Punkty</th><th>Status</th>
+    </tr></thead>`;
+
+  const rows = visible.map(t=>{
+    const st = displayStatusForArchive(t);
+    const who = t.assignedTo || (t.rider || "");
+    const type = (typeof typeLabel==="function") ? typeLabel(t.type||"") : (t.type||"").replace("_"," ");
+    return `<tr class="st-${st}">
+      <td>${isoToPL(t.dateISO)}</td>
+      <td>${escapeHTML(type)}</td>
+      <td>${escapeHTML(t.title||"—")}</td>
+      <td>${escapeHTML(t.horse||"—")}</td>
+      <td>${escapeHTML(who||"—")}</td>
+      <td>${typeof t.points==="number" ? t.points : "—"}</td>
+      <td>${statusLabel(st)}</td>
+    </tr>`;
+  }).join("");
+
+  const headTitle = more ? "Zadania z ostatnich 7 dni" : "Zadania z wczoraj";
+  const toggleLabel = more ? "Pokaż mniej" : "Pokaż więcej";
+  const f = (val,lab)=>`<option value="${val}" ${(filt===val)?'selected':''}>${lab}</option>`;
+  const roleId = role==="instructor" ? "instructor" : "volunteer";
+
+  return `<div class="archive-wrap">
+    <div class="archive-head">
+      <h3 class="archive-title">${headTitle}</h3>
+      <div class="archive-controls">
+        <select id="arch-filter-${roleId}" class="archive-filter">
+          ${f("all","Wszystkie")}
+          ${f("approved","Zrealizowane")}
+          ${f("to_review","Niezweryfikowane")}
+          ${f("open","Niepodjęte")}
+        </select>
+        <button class="archive-toggle" data-role="${role}">${toggleLabel}</button>
+      </div>
+    </div>
+    <table class="table report-table compact">${head}<tbody>${rows}</tbody></table>
+  </div>`;
+}
+function renderInstructorArchive(items){
+  const mount = $("#i-archive");
+  if (!mount) return;
+  mount.innerHTML = compactRows(items, "instructor");
+  // Toggle „Pokaż więcej/mniej”
+  mount.onclick = (e)=>{
+    const btn = e.target.closest(".archive-toggle");
+    if(!btn) return;
+    mount.dataset.more = mount.dataset.more === "1" ? "0" : "1";
+    mount.innerHTML = compactRows(items, "instructor");
+  };
+  // Mini-filtr statusu
+  mount.onchange = (e)=>{
+    if(!(e.target && e.target.classList.contains("archive-filter"))) return;
+    mount.dataset.filter = e.target.value;
+    mount.innerHTML = compactRows(items, "instructor");
+  };
+}
+function renderVolunteerArchive(items){
+  const mount = $("#v-archive");
+  if (!mount) return;
+  mount.innerHTML = compactRows(items, "volunteer");
+  // Toggle „Pokaż więcej/mniej”
+  mount.onclick = (e)=>{
+    const btn = e.target.closest(".archive-toggle");
+    if(!btn) return;
+    mount.dataset.more = mount.dataset.more === "1" ? "0" : "1";
+    mount.innerHTML = compactRows(items, "volunteer");
+  };
+  // Mini-filtr statusu
+  mount.onchange = (e)=>{
+    if(!(e.target && e.target.classList.contains("archive-filter"))) return;
+    mount.dataset.filter = e.target.value;
+    mount.innerHTML = compactRows(items, "volunteer");
+  };
+}
+
+
 
   function setCounts(prefix, items){
     try{
@@ -871,71 +1241,134 @@
       $("#i-countRejected")&&($("#i-countRejected").textContent = by.rejected||0);
     }catch(e){}
   }
+function cardHTMLVolunteer(t){
+  const meta = [
+    isoToPL(t.dateISO),
+    t.when ? `godz. ${t.when}` : null,
+    t.horse ? `koń: ${t.horse}` : null,
+    t.arena ? `miejsce: ${t.arena}` : null,
+    t.assignedTo ? `przypisane: ${t.assignedTo}` : "Wolne"
+  ].filter(Boolean).join(" • ");
 
-  function cardHTMLVolunteer(t){
-    const meta = [
-      isoToPL(t.dateISO),
-      t.when ? `godz. ${t.when}` : null,
-      t.horse ? `koń: ${t.horse}` : null,
-      t.arena ? `miejsce: ${t.arena}` : null,
-      t.assignedTo ? `przypisane: ${t.assignedTo}` : "Wolne"
-    ].filter(Boolean).join(" • ");
+  return `
+  <article class="card ${classByStatus(t.status)} ${t.daily?'daily':''} ${isFutureISO(t.dateISO)?'future':''}" data-id="${t.id}">
+    <div class="title"><h3>${escapeHTML(t.title)}</h3></div>
+    <div class="badges">
+      <span class="badge-tag ${t.daily?'badge-daily':''}">${escapeHTML(typeLabel(t.type))}</span>
+      ${statusBadgeHTML(t.status)}
+    </div>
+    <div class="meta">${escapeHTML(meta)}</div>
+    <div class="kit">
+      <button class="btn small more" type="button" data-id="${t.id}">Szczegóły</button>
+      ${quickButtonsVolunteer(t)}
+    </div>
+  </article>`;
+}
 
-    return `
-    <article class="card ${classByStatus(t.status)} ${t.daily?'daily':''} ${isFutureISO(t.dateISO)?'future':''}" data-id="${t.id}">
-      <div class="title"><h3>${escapeHTML(t.title)}</h3></div>
-      <div class="badges">
-        <span class="badge-tag ${t.daily?'badge-daily':''}">${escapeHTML(typeLabel(t.type))}</span>
-        ${statusBadgeHTML(t.status)}
-      </div>
-      <div class="meta">${escapeHTML(meta)}</div>
-      <div class="kit">
-        <button class="btn small more" data-id="${t.id}">Szczegóły</button>
-        ${quickButtonsVolunteer(t)}
-      </div>
-    </article>`;
+function onOpenTask(e){
+  try{
+    const id = e?.currentTarget?.dataset?.id;
+    if(!id) return;
+    openTaskDetailsById(id);
+  }catch(_){}
+}
+
+
+function quickButtonsVolunteer(t){
+  const me = (state.volunteer.name||"").trim();
+  if (t.status === "open")
+    return `<button class="btn small take" type="button" data-id="${t.id}">Weź</button>`;
+  if (t.assignedTo === me && t.status === "taken") {
+    return `<button class="btn small done" type="button" data-id="${t.id}">Zgłoś Wykonanie</button>
+            <button class="btn small ghost resign" type="button" data-id="${t.id}">Zrezygnuj</button>`;
   }
-
-  function quickButtonsVolunteer(t){
-    const me = (state.volunteer.name||"").trim();
-    if (t.status === "open") return `<button class="btn small take" data-id="${t.id}">Weź</button>`;
-    if (t.assignedTo === me && t.status === "taken") {
-      return `<button class="btn small done" data-id="${t.id}">Zgłoś Wykonanie</button>
-              <button class="btn small ghost resign" data-id="${t.id}">Zrezygnuj</button>`;
-    }
-    return `<span class="meta"></span>`;
-  }
+  return `<span class="meta"></span>`;
+}
+/* === FIX 3: awaryjna mapa typów dla filtra wolontariusza === */
+function typeMapVolunteer(t){
+  return t; // neutralnie: brak mapowania, brak błędu ReferenceError
+}
 
   function renderVolunteer(){
-    try{
-      const me = (state.volunteer.name||"").trim();
-      const vis = state.tasks.filter(t=> t.type!=="jazda_grupowa" && t.type!=="jazda_indywidualna");
-      setCounts("v", vis);
+  try{
+    const me = (state.volunteer.name||"").trim();
+    const today = todayISO();
+    const vis = state.tasks.filter(t => t.type!=="jazda_grupowa" && t.type!=="jazda_indywidualna" && t.dateISO === today);
 
-      const approvedMine = state.tasks.filter(t=> t.assignedTo===me && t.status==="approved");
-      $("#myPoints") && ($("#myPoints").textContent = String(approvedMine.reduce((a,t)=>a+(+t.points||0),0)));
-      $("#myHorseshoes") && ($("#myHorseshoes").innerHTML = horseshoesHTML(4));
+    setCounts("v", vis);
 
-      const q = (state.ui?.v?.search||"").toLowerCase();
-      const typeFilter = $("#v-type")?.value || "";
-      let items = vis;
-      if (typeFilter) items = items.filter(t => t.type===typeFilter || typeMapVolunteer(t.type)===typeFilter);
-      if (q) items = items.filter(t => [t.title,t.horse,t.arena].filter(Boolean).some(x=>String(x).toLowerCase().includes(q)));
+    // === Scoreboard ===
+    const approvedMine = state.tasks.filter(t => t.assignedTo===me && t.status==="approved");
+    const approvedPts = approvedMine.reduce((a,t)=> a + (+t.points||0), 0);
+    const inCollection = state.tasks.filter(t => t.assignedTo===me && (t.status==="taken" || t.status==="to_review") && t.dateISO===today).length;
 
-      const list = $("#v-list");
-      if(!list) return;
-      list.className = "list";
-      list.innerHTML = items.map(cardHTMLVolunteer).join("");
-      list.querySelectorAll(".more").forEach(b=>b.addEventListener("click", onOpenTask));
-      list.querySelectorAll(".take").forEach(b=>b.addEventListener("click", onQuickTake));
-      list.querySelectorAll(".done").forEach(b=>b.addEventListener("click", onQuickDone));
-      list.querySelectorAll(".resign").forEach(b=>b.addEventListener("click", onQuickResign));
-    }catch(e){ console.warn("renderVolunteer error", e); }
+    const ap = document.getElementById("v-approvedPoints");
+    const tk = document.getElementById("v-takenCount");
+    if(ap) ap.textContent = String(approvedPts);
+    if(tk) tk.textContent = String(inCollection);
+
+    const q = (state.ui?.v?.search||"").toLowerCase();
+    const typeFilter = document.getElementById("v-type")?.value || "";
+    let items = vis;
+    if (typeFilter) items = items.filter(t => t.type===typeFilter || typeMapVolunteer(t.type)===typeFilter);
+    if (q) items = items.filter(t => [t.title,t.horse,t.arena].filter(Boolean).some(x=>String(x).toLowerCase().includes(q)));
+
+    const list = document.getElementById("v-list");
+    if(!list) return;
+    list.className = "list";
+list.innerHTML = items.map(cardHTMLVolunteer).join("");
+
+// Jeden, pewny nasłuchiwacz na cały kontener (delegacja)
+list.onclick = (ev)=>{
+  const btn = ev.target.closest(".more, .take, .done, .resign");
+  if(!btn || !list.contains(btn)) return;
+
+  const id = btn.dataset.id;
+  if(!id) return;
+
+  // Podgląd (zostawiamy jak było)
+  if(btn.classList.contains("more")){
+    onOpenTask({ currentTarget: btn });
+    return;
   }
 
-  function typeMapVolunteer(t){ if (t==="prep") return "siodłanie"; return t; }
-  function onOpenTask(e){ alert("Szczegóły zadania (demo)"); }
-  function onQuickTake(e){ try{ const id=e.currentTarget.dataset.id; const t=state.tasks.find(x=>x.id===id); if(t) takeTask(t);}catch(_){ } }
+  // Odnajdujemy zadanie tylko raz
+  const t = state.tasks.find(x=>x.id===id);
+  if(!t) return;
+
+  if(btn.classList.contains("take")){
+    // „Weź”
+    takeTask(t, btn);
+    return;
+  }
+  if(btn.classList.contains("done")){
+    // „Zgłoś Wykonanie”
+    markDone(t);
+    return;
+  }
+  if(btn.classList.contains("resign")){
+    // „Zrezygnuj”
+    if (t.status!=="taken") return;
+    t.status = "open";
+    t.assignedTo = null;
+    persistAll(); renderAll();
+    toastMsg("Zrezygnowano z wykonania");
+    return;
+  }
+};
+
+} catch(e){ console.warn("renderVolunteer error", e); }
+}
+
+
+function onQuickTake(e){
+  try{
+    const id = e.currentTarget?.dataset?.id;
+    const t  = state.tasks.find(x=>x.id===id);
+    if(!t) return;
+    takeTask(t, e.currentTarget);
+  }catch(err){ console.warn("onQuickTake", err); }
+}
   function onQuickDone(e){ try{ const id=e.currentTarget.dataset.id; const t=state.tasks.find(x=>x.id===id); if(t) markDone(t);}catch(_){ } }
   function onQuickResign(e){
     try{
@@ -945,15 +1378,32 @@
       t.status = "open";
       t.assignedTo = null;
       persistAll(); renderAll();
-      toastMsg("Zadanie zwrócone do puli");
+      toastMsg("Zrezygnowano z wykonania");
     }catch(_){}
   }
-  function takeTask(t){
-    const me = (state.volunteer.name||"").trim();
-    if(!me){ alert("Podaj swoje imię i zapisz."); return; }
-    if(t.status!=="open"){ alert("To zadanie nie jest już wolne."); return; }
-    t.status="taken"; t.assignedTo=me; persistAll(); renderAll();
-  }
+function takeTask(t, originEl){
+  const me = (state.volunteer.name||"").trim();
+  if(!me){ alert("Podaj swoje imię i zapisz."); return; }
+  if(t.status!=="open"){ alert("To zadanie nie jest już wolne."); return; }
+
+  t.status = "taken";
+  t.assignedTo = me;
+
+  // --- ANIMACJA PODKOWY (+punkty) ---
+  const pts = Number.isFinite(+t.points) ? (+t.points) : 1;
+  try{
+    if (window.EF && typeof EF.animPoints === "function") {
+      EF.animPoints(originEl || document.body, pts);
+    } else {
+      console.warn("EF.animPoints not available");
+    }
+  }catch(e){ console.warn("animPoints error", e); }
+
+  persistAll();
+  renderAll();
+}
+
+
   function markDone(t){
     if(t.status!=="taken"){ toastMsg("Najpierw weź zadanie", {danger:true}); return; }
     t.status="to_review"; persistAll(); renderAll();
@@ -989,7 +1439,7 @@
       list.className = "";
       list.innerHTML = `
         <div style="overflow:auto">
-          <table class="table">
+          <table class="table report-table">
             <thead>
               <tr>
                 <th>Data</th><th>Godz.</th><th>Typ</th><th>Tytuł</th>
@@ -1020,29 +1470,30 @@
   }
 
   /* ===== ADMIN ===== */
-  function initAdmin(){
+    function initAdmin(){
     try{
       const day = todayISO();
-      $("#a-day") && ($("#a-day").value = state.ui.a?.day || day);
       $("#a-date") && ($("#a-date").value = day);
-      $("#adminTodayLabel") && ($("#adminTodayLabel").textContent = `Planowanie — ${isoToPL($("#a-day")?.value || day)}`);
 
-      refreshAdminSelects();
-      populateAdminLevel();
-      $("#a-rideType")?.addEventListener("change", populateAdminLevel);
+      // Formularz „Dodaj zadanie” (mirror Instruktora)
+      $("#a-taskType")?.addEventListener("change", renderDynamicFieldsAdmin);
+      renderDynamicFieldsAdmin();
+      $("#a-add")?.addEventListener("click", addAdminTask);
 
-      $("#a-day")?.addEventListener("change", ()=>{
-        state.ui.a.day = $("#a-day").value || todayISO();
-        $("#adminTodayLabel") && ($("#adminTodayLabel").textContent = `Planowanie — ${isoToPL(state.ui.a.day)}`);
-        renderAdmin();
-        save(LS.UI, state.ui);
-      });
-      $("#a-addRider")?.addEventListener("click", onAdminAddRider);
-      $("#a-generate")?.addEventListener("click", ()=>{ renderAdmin(true); flash("#a-generate","Zbudowano grafik"); });
+      // Nagłówki grafików
+      const title = $("#schedTitle");
+      if (title) title.textContent = `Grafik dnia — ${isoToPL(day)}`;
+      const titleProc = $("#schedProcTitle");
+      if (titleProc) titleProc.textContent = `Grafik zabiegów dnia — ${isoToPL(day)}`;
+
+      // Pierwsze renderowanie obu grafik
+      renderAdmin();
+
+      // Dodatkowe kontrolki (opcjonalne)
       $("#a-refresh")?.addEventListener("click", ()=>{ renderAdmin(); flash("#a-refresh","Odświeżono"); });
-      $("#a-print")?.addEventListener("click", ()=>{ window.print(); });
     }catch(e){ console.warn("initAdmin error", e); }
   }
+
 
   function populateAdminLevel(){
     try{
@@ -1140,8 +1591,8 @@
       const title = $("#schedTitle");
       title && (title.textContent = `Grafik dnia — ${isoToPL(day)}`);
       if(!grid) return;
+grid.innerHTML = "";
 
-      grid.innerHTML = "";
       grid.style.setProperty("--sched-cols", String(state.instructors.length));
 
       const header = document.createElement("div");
@@ -1182,13 +1633,100 @@
           const rid = btn.dataset.rid;
           if(!rid) return;
 
-          state.riders = state.riders.filter(r => r.id !== rid);
+         state.riders = state.riders.filter(r => r.id !== rid);
           state.tasks  = state.tasks.filter(t => t.riderId !== rid);
 
           persistAll();
           renderAll();
+          toastMsg("Zadanie usunięte");
+
         }catch(e){ console.warn("grid onclick", e); }
       };
+// ====== GRAFIK ZABIEGÓW DNIA (transpose: konie=wiersze, typy=kolumny) ======
+(function(){
+  const gridP = $("#scheduleGridProc");
+  const titleP = $("#schedProcTitle");
+  const day = $("#a-day")?.value || todayISO();
+  if (titleP) titleP.textContent = `Grafik zabiegów dnia — ${isoToPL(day)}`;
+  if (!gridP) return;
+
+  gridP.innerHTML = "";
+
+  // wybierz zabiegi danego dnia
+  const procs = state.tasks.filter(t => t.type==="zabieg" && t.dateISO===day);
+
+  // wiersze = KONIE
+  const horses = Array.from(new Set(procs.map(p=>p.horse||"—").filter(Boolean))).sort();
+
+  // kolumny = TYPY zabiegów
+  const types = Array.from(new Set(procs.map(p=>p.procType||"Zabieg"))).sort();
+
+  gridP.style.setProperty("--sched-cols", String(Math.max(types.length, 1)));
+
+  // header
+  const headerP = document.createElement("div");
+  headerP.className = "sched-row header";
+  headerP.appendChild(el("div","sched-time","Koń"));
+  if (types.length){
+    types.forEach(tp => headerP.appendChild(el("div","sched-slot", tp)));
+  } else {
+    headerP.appendChild(el("div","sched-slot","Zabiegi"));
+  }
+  gridP.appendChild(headerP);
+
+  // rows (po koniach)
+  horses.forEach(h=>{
+    const row = document.createElement("div");
+    row.className = "sched-row";
+    row.appendChild(el("div","sched-time", h));
+
+    if (types.length){
+      types.forEach(tp=>{
+        const cell = el("div","sched-slot","");
+        procs.filter(p => (p.horse||"—")===h && (p.procType||"Zabieg")===tp).forEach(p=>{
+          const line = document.createElement("div");
+          line.className = "rider";
+          line.innerHTML = `
+            ${escapeHTML(p.when || "—")}${p.arena ? " • " + escapeHTML(p.arena) : "" }
+            <button class="rider-del proc-del" title="Usuń z grafiku" aria-label="Usuń" data-tid="${p.id}">×</button>
+          `;
+          cell.appendChild(line);
+        });
+        row.appendChild(cell);
+      });
+    } else {
+      const cell = el("div","sched-slot","");
+      procs.filter(p => (p.horse||"—")===h).forEach(p=>{
+        const line = document.createElement("div");
+        line.className = "rider";
+        line.innerHTML = `
+          ${escapeHTML(p.procType||"Zabieg")} • ${escapeHTML(p.when||"—")}
+          <button class="rider-del proc-del" title="Usuń z grafiku" aria-label="Usuń" data-tid="${p.id}">×</button>
+        `;
+        cell.appendChild(line);
+      });
+      row.appendChild(cell);
+    }
+
+    gridP.appendChild(row);
+  });
+
+  // szybkie usuwanie zabiegu
+  gridP.onclick = (ev)=>{
+    try{
+      const btn = ev.target.closest(".proc-del");
+      if(!btn) return;
+      const tid = btn.dataset.tid;
+      if(!tid) return;
+      // usuwamy samo zadanie-zabieg (nie ruszamy jeźdźców)
+      state.tasks = state.tasks.filter(t => t.id !== tid);
+      persistAll();
+      renderAll();
+    }catch(e){ console.warn("gridP onclick", e); }
+  };
+})();
+
+
     }catch(e){ console.warn("renderAdmin", e); }
   }
 
