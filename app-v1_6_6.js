@@ -273,25 +273,31 @@ document.addEventListener("DOMContentLoaded", () => {
       horses:      load(LS.HORSES)      || seedHorses,
       riders:      load(LS.RIDERS)      || seedRiders,
       instructors: load(LS.INSTRUCTORS) || seedInstructors,
-      ui: (() => {
-        const today = todayISO();
-        const ui = load(LS.UI);
-if (ui) {
-  return {
-    ...ui,
-    a: { ...(ui.a || {}), day: today },
-    v: { ...(ui.v || {}), view: "list" },
-    i: { ...(ui.i || {}), view: "list", status: ui.i?.status || "all", future: !!ui.i?.future, sort: ui.i?.sort || "newest" },
-    r: { ...(ui.r || {}), view: "list", from: ui.r?.from || today, to: ui.r?.to || today }
-  };
-}
+        ui: (() => {
+          const today = todayISO();
+          const base = {
+            tab: "admin",
+            a: { day: today },
+            v: { view: "list", search: "" },
+            i: { view: "list", status: "all", future: false, sort: "newest" },
+            r: { view: "list", from: today, to: today, status: "" }
+          };
+          const ui = load(LS.UI);
+          if (ui) {
+            return {
+              ...base,
+              ...ui,
+              a: { ...base.a, ...(ui.a || {}) },
+              v: { ...base.v, ...(ui.v || {}) },
+              i: { ...base.i, ...(ui.i || {}) },
+              r: { ...base.r, ...(ui.r || {}) }
+            };
+          }
 
-        // WYMUSZAMY dzisiejszy zakres w Raportach przy KAŻDYM starcie
-        base.r.from = today;
-        base.r.to   = today;
-        return base;
-      })()
-    };
+          // WYMUSZAMY dzisiejszy zakres w Raportach przy KAŻDYM starcie
+          return base;
+        })()
+      };
 
     ensureDailyTasksForToday();
     state.ui.tab = state.ui.tab || "admin";
